@@ -7,10 +7,8 @@ import { Package2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { UserRole } from '@/types/database';
-import type { Database } from '@/lib/supabase/database.types';
 import { loginSchema } from '@/lib/validations/auth';
 
 export default function LoginPage() {
@@ -20,7 +18,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,43 +37,27 @@ export default function LoginPage() {
     try {
       const { email: validEmail, password: validPassword } = parsedCredentials.data;
 
-      // Sign in with Supabase
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: validEmail,
-        password: validPassword,
+      // Call login API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: validEmail,
+          password: validPassword,
+          role: selectedRole,
+        }),
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('No user data returned');
+      const data = await response.json();
 
-      // Get user profile from database
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (profileError || !profile) {
-        await supabase.auth.signOut();
-        toast.error('User profile not found. Please contact support.');
-        setLoading(false);
-        return;
-      }
-
-      const userRole = profile.role as UserRole;
-
-      // Verify role matches selected role
-      if (userRole !== selectedRole) {
-        await supabase.auth.signOut();
-        toast.error(`This account is not registered as ${selectedRole}. Please select the correct role.`);
-        setLoading(false);
-        return;
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
       }
 
       toast.success('Login successful!');
 
       // Redirect based on role
-      switch (userRole) {
+      switch (data.user.role) {
         case 'admin':
           router.push('/admin/dashboard');
           break;
@@ -94,14 +75,7 @@ export default function LoginPage() {
       
       let errorMessage = 'Login failed. Please check your credentials.';
       if (error && typeof error === 'object' && 'message' in error) {
-        const supabaseError = error as { message: string };
-        if (supabaseError.message.includes('Invalid login credentials')) {
-          errorMessage = 'Invalid email or password.';
-        } else if (supabaseError.message.includes('Email not confirmed')) {
-          errorMessage = 'Please verify your email address.';
-        } else if (supabaseError.message.includes('User not found')) {
-          errorMessage = 'No account found with this email.';
-        }
+        errorMessage = (error as Error).message;
       }
       
       toast.error(errorMessage);

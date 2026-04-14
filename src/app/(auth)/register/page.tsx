@@ -8,9 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import type { Database } from '@/lib/supabase/database.types';
 import { registerSchema } from '@/lib/validations/auth';
 
 export default function RegisterPage() {
@@ -18,7 +16,6 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -52,6 +49,7 @@ export default function RegisterPage() {
       hostel_block: formData.hostelBlock.trim(),
       floor_number: formData.floorNumber.trim(),
       room_number: formData.roomNumber.trim(),
+      landmark_note: formData.landmark.trim(),
       password: formData.password,
       confirm_password: formData.confirmPassword,
     };
@@ -70,42 +68,18 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const validData = parsedPayload.data;
-
-      // Register with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: validData.email,
-        password: validData.password,
-        options: {
-          data: {
-            full_name: validData.full_name,
-            mobile_number: `+91${validData.mobile_number}`,
-          },
-        },
+      // Call register API
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('No user data returned');
+      const data = await response.json();
 
-      // Create profile in database
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          email: validData.email,
-          full_name: validData.full_name,
-          mobile_number: `+91${validData.mobile_number}`,
-          role: 'student',
-          student_roll_no: validData.student_roll_no,
-          course_branch: validData.course_branch,
-          hostel_block: validData.hostel_block,
-          room_number: validData.room_number,
-          floor_number: validData.floor_number,
-          landmark_note: formData.landmark.trim() || null,
-          is_active: true,
-        });
-
-      if (profileError) throw profileError;
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
 
       toast.success('Account created successfully!');
       router.push('/student/dashboard');
@@ -114,14 +88,7 @@ export default function RegisterPage() {
       
       let errorMessage = 'Registration failed. Please try again.';
       if (error && typeof error === 'object' && 'message' in error) {
-        const supabaseError = error as { message: string };
-        if (supabaseError.message.includes('already registered')) {
-          errorMessage = 'This email is already registered.';
-        } else if (supabaseError.message.includes('Password')) {
-          errorMessage = 'Password is too weak. Use at least 6 characters.';
-        } else if (supabaseError.message.includes('email')) {
-          errorMessage = 'Invalid email address.';
-        }
+        errorMessage = (error as Error).message;
       }
       
       toast.error(errorMessage);

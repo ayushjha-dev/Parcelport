@@ -7,9 +7,6 @@ import { Package2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { auth, db } from '@/lib/firebase/client';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 export default function RegisterStaffPage() {
@@ -20,7 +17,6 @@ export default function RegisterStaffPage() {
     phone: '',
     password: '',
     confirmPassword: '',
-    vehicleNumber: '',
   });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -42,50 +38,37 @@ export default function RegisterStaffPage() {
     setLoading(true);
 
     try {
-      // Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email.trim().toLowerCase(),
-        formData.password
-      );
-
-      const user = userCredential.user;
-
-      // Update display name
-      await updateProfile(user, {
-        displayName: formData.fullName,
+      // Call register-staff API
+      const response = await fetch('/api/auth/register-staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: formData.fullName.trim(),
+          email: formData.email.trim().toLowerCase(),
+          mobile_number: formData.phone.trim().replace(/^\+91/, ''),
+          password: formData.password,
+          confirm_password: formData.confirmPassword,
+        }),
       });
 
-      // Create user document in Firestore with delivery_boy role
-      await setDoc(doc(db, 'users', user.uid), {
-        email: formData.email.trim().toLowerCase(),
-        displayName: formData.fullName,
-        phone: formData.phone,
-        role: 'delivery_boy',
-        vehicleNumber: formData.vehicleNumber || '',
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      const data = await response.json();
 
-      toast.success('Account created successfully! Please login.');
-      
-      // Sign out and redirect to login
-      await auth.signOut();
-      router.push('/login');
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      toast.success('Account created successfully!');
+      router.push('/delivery/dashboard');
     } catch (error: any) {
       console.error('Registration error:', error);
       
       let errorMessage = 'Registration failed. Please try again.';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email is already registered';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak';
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = error.message;
       }
       
       toast.error(errorMessage);
+    } finally {
       setLoading(false);
     }
   };
@@ -196,31 +179,21 @@ export default function RegisterStaffPage() {
                 <Label htmlFor="phone" className="text-sm font-semibold text-[#45464d] mb-2 block">
                   Phone Number
                 </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="Enter your phone number"
-                  required
-                  disabled={loading}
-                  className="w-full bg-white border ring-1 ring-[#c5c6ce] focus:ring-2 focus:ring-[#fea619] rounded-xl px-4 py-3.5"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="vehicleNumber" className="text-sm font-semibold text-[#45464d] mb-2 block">
-                  Vehicle Number (Optional)
-                </Label>
-                <Input
-                  id="vehicleNumber"
-                  type="text"
-                  value={formData.vehicleNumber}
-                  onChange={(e) => setFormData({ ...formData, vehicleNumber: e.target.value })}
-                  placeholder="e.g. DL01AB1234"
-                  disabled={loading}
-                  className="w-full bg-white border ring-1 ring-[#c5c6ce] focus:ring-2 focus:ring-[#fea619] rounded-xl px-4 py-3.5"
-                />
+                <div className="flex">
+                  <span className="inline-flex items-center px-4 rounded-l-xl bg-[#eaeef2] text-[#45464d] text-sm font-medium">
+                    +91
+                  </span>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="Enter your phone number"
+                    required
+                    disabled={loading}
+                    className="w-full bg-white border ring-1 ring-[#c5c6ce] focus:ring-2 focus:ring-[#fea619] rounded-r-xl border-l-0 px-4 py-3.5"
+                  />
+                </div>
               </div>
 
               <div>

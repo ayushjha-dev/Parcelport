@@ -67,6 +67,7 @@ export interface Profile {
   floor_number: string | null;
   room_number: string | null;
   landmark_note: string | null;
+  password_hash: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
