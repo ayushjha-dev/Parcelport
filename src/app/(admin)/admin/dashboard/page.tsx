@@ -5,8 +5,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Package, Clock, Truck, CheckCircle, Wallet } from 'lucide-react';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { useState } from 'react';
 
 export default function AdminDashboardPage() {
+  const [activeFilter, setActiveFilter] = useState<'pending' | 'failed' | 'rejected'>('pending');
+
   const stats = [
     { icon: Package, label: "Today's Parcels", value: '0', badge: 'No data', color: 'bg-[#d9e2ff]', textColor: 'text-[#04122e]' },
     { icon: Clock, label: 'Pending Verification', value: '0', badge: 'No data', color: 'bg-[#ffddb8]', textColor: 'text-[#855300]' },
@@ -16,6 +19,34 @@ export default function AdminDashboardPage() {
   ];
 
   const pendingPayments: Array<never> = [];
+
+  const getFilteredPayments = () => {
+    // Filter payments based on active filter
+    // This will be populated when you have actual payment data
+    return pendingPayments;
+  };
+
+  const getEmptyStateMessage = () => {
+    switch (activeFilter) {
+      case 'pending':
+        return {
+          title: 'No payments to review',
+          description: 'Pending payment proofs will appear here when available.'
+        };
+      case 'failed':
+        return {
+          title: 'No failed payments',
+          description: 'Failed payment transactions will appear here.'
+        };
+      case 'rejected':
+        return {
+          title: 'No rejected payments',
+          description: 'Rejected payment proofs will appear here.'
+        };
+    }
+  };
+
+  const emptyState = getEmptyStateMessage();
 
   return (
     <div className="min-h-screen">
@@ -55,27 +86,40 @@ export default function AdminDashboardPage() {
               <h2 className="text-xl font-bold text-[#04122e]">Parcels Needing Attention</h2>
               <p className="text-sm text-[#45464d]">Immediate action required for payment verification</p>
             </div>
-            <div className="flex bg-[#f0f4f8] p-1 rounded-lg">
+            <div className="flex bg-[#f0f4f8] p-1 rounded-lg gap-1">
               <Button 
                 type="button"
                 size="sm" 
-                className="bg-white text-xs font-bold rounded-md shadow-sm"
+                onClick={() => setActiveFilter('pending')}
+                className={`text-xs font-bold rounded-md transition-all ${
+                  activeFilter === 'pending' 
+                    ? 'bg-white text-[#04122e] shadow-sm' 
+                    : 'bg-transparent text-[#45464d] hover:bg-white/50'
+                }`}
               >
                 Payment Pending
               </Button>
               <Button 
                 type="button"
                 size="sm" 
-                variant="ghost" 
-                className="text-xs font-bold"
+                onClick={() => setActiveFilter('failed')}
+                className={`text-xs font-bold rounded-md transition-all ${
+                  activeFilter === 'failed' 
+                    ? 'bg-white text-[#04122e] shadow-sm' 
+                    : 'bg-transparent text-[#45464d] hover:bg-white/50'
+                }`}
               >
                 Failed
               </Button>
               <Button 
                 type="button"
                 size="sm" 
-                variant="ghost" 
-                className="text-xs font-bold"
+                onClick={() => setActiveFilter('rejected')}
+                className={`text-xs font-bold rounded-md transition-all ${
+                  activeFilter === 'rejected' 
+                    ? 'bg-white text-[#04122e] shadow-sm' 
+                    : 'bg-transparent text-[#45464d] hover:bg-white/50'
+                }`}
               >
                 Rejected
               </Button>
@@ -93,10 +137,13 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#eaeef2]">
-                {pendingPayments.length === 0 ? (
+                {getFilteredPayments().length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-10">
-                      <EmptyState title="No payments to review" description="Pending payment proofs will appear here when available." />
+                      <EmptyState 
+                        title={emptyState.title} 
+                        description={emptyState.description} 
+                      />
                     </td>
                   </tr>
                 ) : null}

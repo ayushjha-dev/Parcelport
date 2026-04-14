@@ -19,7 +19,7 @@ export function AdminSidebar() {
 
   const navItems = [
     { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview', badge: null },
-    { href: '/admin/parcels', icon: Package, label: 'Parcels', badge: '5' },
+    { href: '/admin/parcels', icon: Package, label: 'Parcels', badge: null },
     { href: '/admin/payments', icon: CreditCard, label: 'Payments', badge: null },
     { href: '/admin/assign', icon: Truck, label: 'Assign Delivery', badge: null },
     { href: '/admin/revenue', icon: TrendingUp, label: 'Revenue', badge: null },
