@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db, storage } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase/client';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useRouter } from 'next/navigation';
 
