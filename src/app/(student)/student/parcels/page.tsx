@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react';
 
 export default function MyParcelsPage() {
   const { user } = useAuth();
+  const [parcels, setParcels] = useState<any[]>([]);
   const [parcelCounts, setParcelCounts] = useState({
     all: 0,
     active: 0,
@@ -22,26 +23,43 @@ export default function MyParcelsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchParcelCounts = async () => {
+    const fetchParcels = async () => {
       if (!user) return;
 
       try {
-        // TODO: Implement API call to fetch parcel counts
-        // For now, using placeholder data
-        setParcelCounts({
-          all: 0,
-          active: 0,
-          paymentPending: 0,
-          delivered: 0,
-        });
+        setLoading(true);
+        const response = await fetch('/api/parcels');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch parcels');
+        }
+
+        const result = await response.json();
+        const fetchedParcels = result.data || [];
+        setParcels(fetchedParcels);
+
+        // Calculate counts
+        const counts = {
+          all: fetchedParcels.length,
+          active: fetchedParcels.filter((p: any) => 
+            ['payment_verified', 'assigned', 'out_for_delivery'].includes(p.status)
+          ).length,
+          paymentPending: fetchedParcels.filter((p: any) => 
+            p.status === 'payment_pending'
+          ).length,
+          delivered: fetchedParcels.filter((p: any) => 
+            p.status === 'delivered'
+          ).length,
+        };
+        setParcelCounts(counts);
       } catch (error) {
-        console.error('Error fetching parcel counts:', error);
+        console.error('Error fetching parcels:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchParcelCounts();
+    fetchParcels();
   }, [user]);
 
   return (
@@ -123,11 +141,69 @@ export default function MyParcelsPage() {
 
         {/* Parcels Table */}
         <Card className="rounded-2xl shadow-[0_20px_40px_rgba(4,18,46,0.04)] overflow-hidden border border-[#c5c6ce]/10 p-8">
-          <EmptyState
-            title="No parcel records yet"
-            description="Your parcel history will appear here after you register or receive your first delivery."
-            action={<Link href="/student/parcels/new/step-1"><Button className="bg-[#f59e0b] text-[#1a2744]">Register New Parcel</Button></Link>}
-          />
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-[#04122e] border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-[#45464d] font-medium">Loading parcels...</p>
+              </div>
+            </div>
+          ) : parcels.length === 0 ? (
+            <EmptyState
+              title="No parcel records yet"
+              description="Your parcel history will appear here after you register or receive your first delivery."
+              action={<Link href="/student/parcels/new/step-1"><Button className="bg-[#f59e0b] text-[#1a2744]">Register New Parcel</Button></Link>}
+            />
+          ) : (
+            <div className="space-y-4">
+              {parcels.map((parcel) => (
+                <div key={parcel.id} className="border border-[#c5c6ce]/20 rounded-xl p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-bold text-[#04122e]">DRID: {parcel.drid}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          parcel.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                          parcel.status === 'payment_pending' ? 'bg-yellow-100 text-yellow-700' :
+                          parcel.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {parcel.status.replace(/_/g, ' ').toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#45464d]">
+                        <span className="font-semibold">Tracking:</span> {parcel.parcel_awb}
+                      </p>
+                      <p className="text-sm text-[#45464d]">
+                        <span className="font-semibold">Courier:</span> {parcel.courier_company}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-[#75777e] mb-1">Submitted</p>
+                      <p className="text-sm font-semibold text-[#04122e]">
+                        {new Date(parcel.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-t border-[#eaeef2] pt-4">
+                    <p className="text-sm text-[#45464d] mb-3">
+                      <span className="font-semibold">Description:</span> {parcel.parcel_description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-[#75777e]">
+                        Delivery to: {parcel.hostel_block} - Floor {parcel.floor_number} - Room {parcel.room_number}
+                      </div>
+                      <Link href={`/student/track?drid=${parcel.drid}`}>
+                        <Button size="sm" className="bg-[#04122e] text-white">
+                          Track Parcel
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>
