@@ -1,8 +1,12 @@
+"use client";
+
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
   BellRing,
   Check,
+  ChevronDown,
   Clock3,
   CreditCard,
   FileCheck2,
@@ -76,6 +80,13 @@ const roleBenefits = [
   },
 ];
 
+const quickStats = [
+  { label: 'Role-specific Dashboards', value: '3' },
+  { label: 'Core Parcel States', value: '8+' },
+  { label: 'Secure Handoff Methods', value: '2' },
+  { label: 'Operational Traceability', value: '100%' },
+];
+
 const processSteps = [
   {
     title: 'Parcel Received',
@@ -123,6 +134,16 @@ const faqItems = [
 ];
 
 export default function HomePage() {
+  const [activeRole, setActiveRole] = useState(roleBenefits[0]?.role ?? 'Students');
+  const [openFaq, setOpenFaq] = useState(0);
+
+  const selectedRole = useMemo(
+    () => roleBenefits.find((item) => item.role === activeRole) ?? roleBenefits[0],
+    [activeRole],
+  );
+
+  const SelectedRoleIcon = selectedRole.icon;
+
   return (
     <div className="min-h-screen bg-[#f6fafe] text-[#04122e]">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -170,7 +191,7 @@ export default function HomePage() {
               One platform for every parcel that enters, moves, and completes delivery on campus.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-[#45464d] sm:text-lg">
-              ParcelPort centralizes intake, assignment, student communication, payment proof, and final handoff into a single reliable flow. It is built to reduce manual confusion, improve delivery speed, and give every stakeholder clear visibility.
+              ParcelPort centralizes intake, assignment, student communication, payment proof, and final handoff into one reliable system that keeps teams coordinated and students informed.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -196,35 +217,52 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {quickStats.map((stat) => (
+                <article key={stat.label} className="rounded-xl border border-[#c5c6ce]/80 bg-white/90 px-4 py-4">
+                  <p className="font-heading text-2xl font-extrabold tracking-tight text-[#04122e]">{stat.value}</p>
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#45464d]">{stat.label}</p>
+                </article>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-3xl border border-[#c5c6ce] bg-white p-6 shadow-xl shadow-[#04122e]/5 sm:p-8">
-            <h2 className="font-heading text-2xl font-bold tracking-tight">Why campus teams choose ParcelPort</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#45464d]">
-              The platform combines practical workflows with strict handoff controls so high-volume delivery windows stay reliable and auditable.
-            </p>
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="font-heading text-2xl font-bold tracking-tight">Live Workflow Snapshot</h2>
+              <span className="rounded-full bg-[#1f8f4e]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#1f8f4e]">
+                System Online
+              </span>
+            </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="space-y-3">
               {[
-                'Centralized parcel lifecycle from arrival to completion',
-                'Reduced missed pickups through clear student communication',
-                'Cleaner staff coordination with fewer manual follow-ups',
-                'Admin confidence through transparent operational records',
+                { label: 'Parcels Received', value: '124', tone: 'bg-[#04122e]' },
+                { label: 'Out For Delivery', value: '31', tone: 'bg-[#855300]' },
+                { label: 'Awaiting Pickup', value: '48', tone: 'bg-[#1f8f4e]' },
               ].map((item) => (
-                <div key={item} className="flex items-start gap-3 rounded-xl border border-[#f0f4f8] bg-[#f8fbff] p-3">
-                  <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#fea619] text-white">
-                    <Check className="h-3.5 w-3.5" />
-                  </span>
-                  <p className="text-sm font-medium text-[#04122e]">{item}</p>
-                </div>
+                <article key={item.label} className="rounded-xl border border-[#f0f4f8] bg-[#f8fbff] p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#45464d]">{item.label}</p>
+                    <p className="font-heading text-xl font-extrabold tracking-tight">{item.value}</p>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-[#e6edf6]">
+                    <div className={`h-full rounded-full ${item.tone}`} style={{ width: `${Math.min(Number(item.value), 100)}%` }} />
+                  </div>
+                </article>
               ))}
             </div>
 
-            <div className="mt-6 rounded-2xl bg-[#04122e] p-5 text-white">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b8c7ef]">Designed for scale</p>
-              <p className="mt-2 text-sm leading-relaxed text-[#d7def3]">
-                Whether your campus handles dozens or hundreds of deliveries daily, ParcelPort keeps operations structured and student experience consistent.
-              </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-[#f0f4f8] bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#45464d]">Avg Handoff Time</p>
+                <p className="mt-2 font-heading text-2xl font-extrabold tracking-tight">4m 28s</p>
+              </div>
+              <div className="rounded-2xl border border-[#f0f4f8] bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#45464d]">Verification Success</p>
+                <p className="mt-2 font-heading text-2xl font-extrabold tracking-tight">99.1%</p>
+              </div>
             </div>
           </div>
         </section>
@@ -297,38 +335,60 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-            {roleBenefits.map((item) => {
-              const Icon = item.icon;
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.45fr_0.55fr]">
+            <div className="rounded-2xl border border-[#c5c6ce] bg-white p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#855300]">Choose Role</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1">
+                {roleBenefits.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeRole === item.role;
 
-              return (
-                <article key={item.role} className="flex h-full flex-col rounded-2xl border border-[#c5c6ce] bg-white p-6">
-                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#f0f4f8] text-[#04122e]">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="font-heading text-2xl font-bold tracking-tight">{item.role}</h3>
-                  <ul className="mt-4 space-y-3">
-                    {item.points.map((point) => (
-                      <li key={point} className="flex items-start gap-3 text-sm text-[#45464d]">
-                        <span className="mt-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#fea619] text-white">
-                          <Check className="h-3 w-3" />
-                        </span>
-                        <span>{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-6">
-                    <Link
-                      href={item.cta.href}
-                      className="inline-flex items-center gap-2 text-sm font-bold text-[#04122e] transition hover:text-[#855300]"
+                  return (
+                    <button
+                      key={item.role}
+                      type="button"
+                      onClick={() => setActiveRole(item.role)}
+                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                        isActive
+                          ? 'border-[#04122e] bg-[#04122e] text-white'
+                          : 'border-[#c5c6ce] bg-[#f8fbff] text-[#04122e] hover:border-[#04122e]/30'
+                      }`}
                     >
-                      {item.cta.label}
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </article>
-              );
-            })}
+                      <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${isActive ? 'bg-white/15' : 'bg-white'}`}>
+                        <Icon className="h-4.5 w-4.5" />
+                      </span>
+                      <span className="font-heading text-lg font-bold tracking-tight">{item.role}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <article className="flex h-full flex-col rounded-2xl border border-[#c5c6ce] bg-white p-6">
+              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#f0f4f8] text-[#04122e]">
+                <SelectedRoleIcon className="h-5 w-5" />
+              </div>
+              <h3 className="font-heading text-2xl font-bold tracking-tight">{selectedRole.role} Experience</h3>
+              <ul className="mt-4 space-y-3">
+                {selectedRole.points.map((point) => (
+                  <li key={point} className="flex items-start gap-3 text-sm text-[#45464d]">
+                    <span className="mt-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#fea619] text-white">
+                      <Check className="h-3 w-3" />
+                    </span>
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-6">
+                <Link
+                  href={selectedRole.cta.href}
+                  className="inline-flex items-center gap-2 text-sm font-bold text-[#04122e] transition hover:text-[#855300]"
+                >
+                  {selectedRole.cta.label}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </article>
           </div>
         </section>
 
@@ -361,11 +421,23 @@ export default function HomePage() {
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#855300]">FAQ</p>
             <h2 className="mt-2 font-heading text-3xl font-bold tracking-tight sm:text-4xl">Questions teams ask before deployment</h2>
 
-            <div className="mt-8 space-y-4">
-              {faqItems.map((item) => (
-                <article key={item.q} className="rounded-2xl border border-[#f0f4f8] bg-[#f8fbff] p-5">
-                  <h3 className="font-heading text-lg font-bold tracking-tight">{item.q}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-[#45464d] sm:text-base">{item.a}</p>
+            <div className="mt-8 space-y-3">
+              {faqItems.map((item, index) => (
+                <article key={item.q} className="rounded-2xl border border-[#f0f4f8] bg-[#f8fbff]">
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaq((prev) => (prev === index ? -1 : index))}
+                    className="flex w-full items-center justify-between gap-4 p-5 text-left"
+                    aria-expanded={openFaq === index}
+                  >
+                    <h3 className="font-heading text-lg font-bold tracking-tight">{item.q}</h3>
+                    <ChevronDown
+                      className={`h-5 w-5 flex-shrink-0 text-[#45464d] transition ${openFaq === index ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  {openFaq === index && (
+                    <p className="px-5 pb-5 text-sm leading-relaxed text-[#45464d] sm:text-base">{item.a}</p>
+                  )}
                 </article>
               ))}
             </div>
