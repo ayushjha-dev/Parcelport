@@ -6,21 +6,29 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Upload, CheckCircle, Copy } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, Upload, CheckCircle, Copy, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useParcelRegistrationStore } from '@/stores/parcelRegistrationStore';
+import { useAuth } from '@/hooks/useAuth';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { toast } from 'sonner';
 
 export default function RegisterParcelStep4Page() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { data: registrationData, updateStep4, reset } = useParcelRegistrationStore();
+  
   const [formData, setFormData] = useState({
-    paymentMethod: '',
-    transactionId: '',
-    paymentDate: '',
+    paymentMethod: registrationData.paymentMethod || '',
+    transactionId: registrationData.transactionId || '',
+    paymentDate: registrationData.paymentDate || '',
     screenshot: null as File | null,
   });
 
   const [copied, setCopied] = useState(false);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const paymentMethods = [
     { value: 'upi', label: 'UPI / GPay / PhonePe', icon: '📱' },
@@ -69,13 +77,105 @@ export default function RegisterParcelStep4Page() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isFormValid()) {
-      alert('Parcel registration completed successfully!');
-      router.push('/student/parcels');
-    } else {
-      alert('Please fill in all required fields before submitting.');
+    
+    if (!isFormValid()) {
+      toast.error('Please fill in all required fields before submitting.');
+      return;
+    }
+
+    if (!user) {
+      toast.error('You must be logged in to register a parcel.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Upload payment screenshot to Firebase Storage
+      let screenshotUrl = '';
+      if (formData.screenshot) {
+        const storage = getStorage();
+        const timestamp = Date.now();
+        const fileName = `payment-screenshots/${user.uid}/${timestamp}_${formData.screenshot.name}`;
+        const storageRef = ref(storage, fileName);
+        
+        await uploadBytes(storageRef, formData.screenshot);
+        screenshotUrl = await getDownloadURL(storageRef);
+      }
+
+      // Update store with payment data
+      updateStep4({
+        paymentMethod: formData.paymentMethod,
+        transactionId: formData.transactionId,
+        paymentDate: formData.paymentDate,
+        screenshotUrl: screenshotUrl,
+      });
+
+      // Prepare parcel data for API
+      const parcelData = {
+        // Student information
+        student_id: user.uid,
+        student_name: registrationData.fullName,
+        student_email: registrationData.email,
+        student_phone: registrationData.mobile,
+        
+        // Delivery address
+        hostel_block: registrationData.hostelBlock,
+        floor_number: registrationData.floorNumber,
+        room_number: registrationData.roomNumber,
+        landmark: registrationData.landmark,
+        
+        // Parcel information
+        tracking_id: registrationData.trackingId,
+        courier_company: registrationData.courierCompany,
+        description: registrationData.description,
+        weight_range: registrationData.weightRange,
+        expected_date: registrationData.expectedDate,
+        is_fragile: registrationData.isFragile,
+        
+        // Delivery preferences
+        preferred_time_slot: registrationData.timeSlot,
+        
+        // Payment information
+        payment_method: formData.paymentMethod,
+        transaction_id: formData.transactionId,
+        payment_date: formData.paymentDate,
+        payment_screenshot_url: screenshotUrl,
+        payment_amount: 10, // Fixed delivery fee
+        payment_status: 'pending_verification',
+      };
+
+      // Submit to API
+      const response = await fetch('/api/parcels', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(parcelData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to register parcel');
+      }
+
+      // Success!
+      toast.success('Parcel registered successfully!');
+      
+      // Reset the store
+      reset();
+      
+      // Redirect to success page or parcels list
+      router.push('/student/parcels?success=true');
+      
+    } catch (error: any) {
+      console.error('Error submitting parcel:', error);
+      toast.error(error.message || 'Failed to register parcel. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -328,11 +428,20 @@ export default function RegisterParcelStep4Page() {
                 </Button>
                 <Button 
                   type="submit"
-                  disabled={!isFormValid()}
+                  disabled={!isFormValid() || isSubmitting}
                   className="bg-gradient-to-br from-[#04122e] to-[#1a2744] text-white rounded-xl font-bold shadow-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <CheckCircle className="w-4 h-4" />
-                  Submit & Complete
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Submit & Complete
+                    </>
+                  )}
                 </Button>
               </div>
             </form>

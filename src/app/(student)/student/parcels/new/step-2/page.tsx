@@ -10,16 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
+import { useParcelRegistrationStore } from '@/stores/parcelRegistrationStore';
 
 export default function RegisterParcelStep2Page() {
   const router = useRouter();
+  const { data: registrationData, updateStep2 } = useParcelRegistrationStore();
   const [formData, setFormData] = useState({
-    trackingId: '',
-    courierCompany: '',
-    description: '',
-    weightRange: '',
-    expectedDate: '',
-    isFragile: false,
+    trackingId: registrationData.trackingId || '',
+    courierCompany: registrationData.courierCompany || '',
+    description: registrationData.description || '',
+    weightRange: registrationData.weightRange || '',
+    expectedDate: registrationData.expectedDate || '',
+    isFragile: registrationData.isFragile || false,
   });
 
   const isFormValid = () => {
@@ -33,6 +35,8 @@ export default function RegisterParcelStep2Page() {
 
   const handleContinue = () => {
     if (isFormValid()) {
+      // Save data to store
+      updateStep2(formData);
       router.push('/student/parcels/new/step-3');
     } else {
       alert('Please fill in all required fields before continuing.');

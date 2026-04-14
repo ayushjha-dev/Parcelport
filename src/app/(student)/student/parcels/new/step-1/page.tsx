@@ -10,19 +10,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Info, CheckCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
+import { useParcelRegistrationStore } from '@/stores/parcelRegistrationStore';
 
 export default function RegisterParcelStep1Page() {
   const router = useRouter();
   const { user, getUserProfile } = useAuth();
+  const { data: registrationData, updateStep1 } = useParcelRegistrationStore();
   const [profileData, setProfileData] = useState<any>(null);
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    mobile: '',
-    hostelBlock: 'b',
-    floorNumber: '3',
-    roomNumber: '',
-    landmark: '',
+    fullName: registrationData.fullName || '',
+    email: registrationData.email || '',
+    mobile: registrationData.mobile || '',
+    hostelBlock: registrationData.hostelBlock || 'b',
+    floorNumber: registrationData.floorNumber || '3',
+    roomNumber: registrationData.roomNumber || '',
+    landmark: registrationData.landmark || '',
   });
 
   useEffect(() => {
@@ -64,6 +66,8 @@ export default function RegisterParcelStep1Page() {
 
   const handleContinue = () => {
     if (isFormValid()) {
+      // Save data to store
+      updateStep1(formData);
       router.push('/student/parcels/new/step-2');
     } else {
       alert('Please fill in all required fields before continuing.');

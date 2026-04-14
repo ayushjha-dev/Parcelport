@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { ArrowRight, ArrowLeft, Clock } from 'lucide-react';
 import { useState } from 'react';
+import { useParcelRegistrationStore } from '@/stores/parcelRegistrationStore';
 
 export default function RegisterParcelStep3Page() {
   const router = useRouter();
-  const [selectedSlot, setSelectedSlot] = useState('');
+  const { data: registrationData, updateStep3 } = useParcelRegistrationStore();
+  const [selectedSlot, setSelectedSlot] = useState(registrationData.timeSlot || '');
 
   const timeSlots = [
     { value: 'morning', label: 'Morning', time: '8:00 AM - 12:00 PM', icon: '🌅' },
@@ -24,6 +26,8 @@ export default function RegisterParcelStep3Page() {
 
   const handleContinue = () => {
     if (isFormValid()) {
+      // Save data to store
+      updateStep3({ timeSlot: selectedSlot });
       router.push('/student/parcels/new/step-4');
     } else {
       alert('Please select a time slot before continuing.');
