@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useParcelRegistrationStore } from '@/stores/parcelRegistrationStore';
+import { toast } from 'sonner';
 
 export default function RegisterParcelStep2Page() {
   const router = useRouter();
@@ -34,13 +35,26 @@ export default function RegisterParcelStep2Page() {
   };
 
   const handleContinue = () => {
-    if (isFormValid()) {
-      // Save data to store
-      updateStep2(formData);
-      router.push('/student/parcels/new/step-3');
-    } else {
-      alert('Please fill in all required fields before continuing.');
+    if (!formData.trackingId.trim()) {
+      toast.error('Please enter the parcel tracking ID');
+      return;
     }
+    if (!formData.courierCompany) {
+      toast.error('Please select the courier company');
+      return;
+    }
+    if (!formData.description.trim()) {
+      toast.error('Please enter a parcel description');
+      return;
+    }
+    if (!formData.expectedDate) {
+      toast.error('Please select the expected arrival date');
+      return;
+    }
+
+    // Save data to store
+    updateStep2(formData);
+    router.push('/student/parcels/new/step-3');
   };
 
   return (

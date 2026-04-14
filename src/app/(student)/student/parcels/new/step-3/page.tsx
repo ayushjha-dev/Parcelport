@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowRight, ArrowLeft, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { useParcelRegistrationStore } from '@/stores/parcelRegistrationStore';
+import { toast } from 'sonner';
 
 export default function RegisterParcelStep3Page() {
   const router = useRouter();
@@ -25,13 +26,14 @@ export default function RegisterParcelStep3Page() {
   };
 
   const handleContinue = () => {
-    if (isFormValid()) {
-      // Save data to store
-      updateStep3({ timeSlot: selectedSlot });
-      router.push('/student/parcels/new/step-4');
-    } else {
-      alert('Please select a time slot before continuing.');
+    if (!selectedSlot) {
+      toast.error('Please select a preferred delivery time slot');
+      return;
     }
+
+    // Save data to store
+    updateStep3({ timeSlot: selectedSlot });
+    router.push('/student/parcels/new/step-4');
   };
 
   return (

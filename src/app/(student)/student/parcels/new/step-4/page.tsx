@@ -106,9 +106,27 @@ export default function RegisterParcelStep4Page() {
     console.log('Registration Data:', registrationData);
     console.log('User:', user);
     
-    if (!isFormValid()) {
-      console.error('Form validation failed');
-      toast.error('Please fill in all required fields before submitting.');
+    // Validate payment method
+    if (!formData.paymentMethod) {
+      toast.error('Please select a payment method');
+      return;
+    }
+
+    // Validate transaction ID
+    if (!formData.transactionId.trim()) {
+      toast.error('Please enter the transaction ID');
+      return;
+    }
+
+    // Validate payment date
+    if (!formData.paymentDate) {
+      toast.error('Please select the payment date');
+      return;
+    }
+
+    // Validate screenshot
+    if (!formData.screenshot) {
+      toast.error('Please upload a payment screenshot');
       return;
     }
 

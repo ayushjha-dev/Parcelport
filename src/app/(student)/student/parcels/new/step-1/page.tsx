@@ -11,6 +11,7 @@ import { Info, CheckCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { useParcelRegistrationStore } from '@/stores/parcelRegistrationStore';
+import { toast } from 'sonner';
 
 export default function RegisterParcelStep1Page() {
   const router = useRouter();
@@ -60,13 +61,34 @@ export default function RegisterParcelStep1Page() {
   };
 
   const handleContinue = () => {
-    if (isFormValid()) {
-      // Save data to store
-      updateStep1(formData);
-      router.push('/student/parcels/new/step-2');
-    } else {
-      alert('Please fill in all required fields before continuing.');
+    if (!formData.fullName.trim()) {
+      toast.error('Please enter your full name');
+      return;
     }
+    if (!formData.email.trim()) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    if (!formData.mobile.trim()) {
+      toast.error('Please enter your mobile number');
+      return;
+    }
+    if (!formData.hostelBlock) {
+      toast.error('Please select your hostel block');
+      return;
+    }
+    if (!formData.floorNumber) {
+      toast.error('Please select your floor number');
+      return;
+    }
+    if (!formData.roomNumber.trim()) {
+      toast.error('Please enter your room number');
+      return;
+    }
+
+    // Save data to store
+    updateStep1(formData);
+    router.push('/student/parcels/new/step-2');
   };
 
   return (
