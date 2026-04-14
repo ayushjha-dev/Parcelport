@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/session';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await requireAuth();
     const supabase = await createClient();
-    
+
     const { data: notifications, error } = await supabase
       .from('notifications')
       .select('*')
@@ -16,7 +16,10 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('Error fetching notifications:', error);
-      return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch notifications' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true, data: notifications });
@@ -32,29 +35,46 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const session = await requireAuth();
-    const { id } = await request.json();
-
-    if (!id) {
-      return NextResponse.json({ error: 'Missing notification ID' }, { status: 400 });
-    }
-
+    const { notificationId, markAllAsRead } = await request.json();
     const supabase = await createClient();
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', id)
-      .eq('user_id', session.id);
 
-    if (error) {
-      console.error('Error updating notification:', error);
-      return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 });
+    if (markAllAsRead) {
+      // Mark all notifications as read
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', session.id)
+        .eq('is_read', false);
+
+      if (error) {
+        console.error('Error marking all as read:', error);
+        return NextResponse.json(
+          { error: 'Failed to mark notifications as read' },
+          { status: 500 }
+        );
+      }
+    } else if (notificationId) {
+      // Mark single notification as read
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId)
+        .eq('user_id', session.id);
+
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        return NextResponse.json(
+          { error: 'Failed to mark notification as read' },
+          { status: 500 }
+        );
+      }
     }
 
-    return NextResponse.json({ success: true, id });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating notification:', error);
+    console.error('Error updating notifications:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update notification' },
+      { error: error instanceof Error ? error.message : 'Failed to update notifications' },
       { status: 500 }
     );
   }
