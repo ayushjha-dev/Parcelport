@@ -7,8 +7,6 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { Plus, Mail, Phone, Calendar, Truck } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
 import { toast } from 'sonner';
 
 interface DeliveryBoy {
@@ -31,31 +29,22 @@ export default function DeliveryBoysPage() {
   const fetchDeliveryBoys = async () => {
     try {
       setLoading(true);
-      const usersRef = collection(db, 'users');
-      // Query without orderBy to avoid composite index requirement
-      const q = query(usersRef, where('role', '==', 'delivery'));
+      const response = await fetch('/api/admin/delivery-boys');
       
-      const querySnapshot = await getDocs(q);
-      const boys: DeliveryBoy[] = [];
+      if (!response.ok) {
+        throw new Error('Failed to fetch delivery boys');
+      }
       
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        boys.push({
-          uid: doc.id,
-          name: data.name || data.displayName || 'Unknown',
-          email: data.email || '',
-          phone: data.phone || '',
-          createdAt: data.createdAt || new Date().toISOString(),
-          role: data.role || 'delivery'
-        });
-      });
+      const data = await response.json();
       
-      // Sort in memory instead of in query
-      boys.sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return dateB - dateA; // Descending order (newest first)
-      });
+      const boys: DeliveryBoy[] = data.deliveryBoys.map((boy: any) => ({
+        uid: boy.id,
+        name: boy.full_name || 'Unknown',
+        email: boy.email || '',
+        phone: boy.mobile_number || '',
+        createdAt: boy.created_at || new Date().toISOString(),
+        role: boy.role || 'delivery'
+      }));
       
       setDeliveryBoys(boys);
     } catch (error) {

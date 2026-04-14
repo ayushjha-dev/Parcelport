@@ -4,8 +4,6 @@ import { TopBar } from '@/components/layout/TopBar';
 import { Card } from '@/components/ui/card';
 import { DollarSign } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase/client';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 
 interface RevenueStats {
   today: { amount: number; count: number };
@@ -26,51 +24,13 @@ export default function AdminRevenuePage() {
   useEffect(() => {
     const fetchRevenueData = async () => {
       try {
-        const parcelsRef = collection(db, 'parcels');
-        
-        // Get all parcels with payment status
-        const q = query(parcelsRef, where('paymentStatus', '==', 'paid'));
-        const querySnapshot = await getDocs(q);
-
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-        let todayAmount = 0, todayCount = 0;
-        let weekAmount = 0, weekCount = 0;
-        let monthAmount = 0, monthCount = 0;
-        let totalAmount = 0, totalCount = 0;
-
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          const amount = data.amount || 10; // Default ₹10 per parcel
-          const createdAt = data.createdAt?.toDate() || new Date();
-
-          totalAmount += amount;
-          totalCount++;
-
-          if (createdAt >= todayStart) {
-            todayAmount += amount;
-            todayCount++;
-          }
-
-          if (createdAt >= weekStart) {
-            weekAmount += amount;
-            weekCount++;
-          }
-
-          if (createdAt >= monthStart) {
-            monthAmount += amount;
-            monthCount++;
-          }
-        });
-
+        // TODO: Implement API call to fetch revenue data
+        // For now, using placeholder data
         setStats({
-          today: { amount: todayAmount, count: todayCount },
-          thisWeek: { amount: weekAmount, count: weekCount },
-          thisMonth: { amount: monthAmount, count: monthCount },
-          total: { amount: totalAmount, count: totalCount },
+          today: { amount: 0, count: 0 },
+          thisWeek: { amount: 0, count: 0 },
+          thisMonth: { amount: 0, count: 0 },
+          total: { amount: 0, count: 0 },
         });
       } catch (error) {
         console.error('Error fetching revenue data:', error);

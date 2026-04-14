@@ -10,8 +10,6 @@ import Link from 'next/link';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase/client';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function MyParcelsPage() {
   const { user } = useAuth();
@@ -28,31 +26,14 @@ export default function MyParcelsPage() {
       if (!user) return;
 
       try {
-        // Query parcels collection for current user
-        const parcelsRef = collection(db, 'parcels');
-        const q = query(parcelsRef, where('userId', '==', user.id));
-        const querySnapshot = await getDocs(q);
-
-        let all = 0;
-        let active = 0;
-        let paymentPending = 0;
-        let delivered = 0;
-
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          all++;
-
-          // Count by status
-          if (data.status === 'active' || data.status === 'in_transit' || data.status === 'out_for_delivery') {
-            active++;
-          } else if (data.status === 'payment_pending') {
-            paymentPending++;
-          } else if (data.status === 'delivered') {
-            delivered++;
-          }
+        // TODO: Implement API call to fetch parcel counts
+        // For now, using placeholder data
+        setParcelCounts({
+          all: 0,
+          active: 0,
+          paymentPending: 0,
+          delivered: 0,
         });
-
-        setParcelCounts({ all, active, paymentPending, delivered });
       } catch (error) {
         console.error('Error fetching parcel counts:', error);
       } finally {

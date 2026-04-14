@@ -8,9 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react';
-import { auth, db } from '@/lib/firebase/client';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 export default function CreateDeliveryBoyPage() {
@@ -44,51 +41,33 @@ export default function CreateDeliveryBoyPage() {
     setLoading(true);
 
     try {
-      // Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email.trim().toLowerCase(),
-        formData.password
-      );
-
-      const user = userCredential.user;
-
-      // Update display name
-      await updateProfile(user, {
-        displayName: formData.fullName,
+      const response = await fetch('/api/auth/create-delivery-boy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email.trim().toLowerCase(),
+          phone: formData.phone,
+          password: formData.password,
+          vehicleNumber: formData.vehicleNumber,
+          licenseNumber: formData.licenseNumber,
+        }),
       });
 
-      // Create user document in Firestore with delivery_boy role
-      await setDoc(doc(db, 'users', user.uid), {
-        email: formData.email.trim().toLowerCase(),
-        displayName: formData.fullName,
-        phone: formData.phone,
-        role: 'delivery_boy',
-        vehicleNumber: formData.vehicleNumber,
-        licenseNumber: formData.licenseNumber,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create delivery boy account');
+      }
 
       toast.success('Delivery boy account created successfully!');
-      
-      // Sign out the newly created user and redirect
-      await auth.signOut();
       router.push('/admin/delivery-boys');
     } catch (error: any) {
       console.error('Account creation error:', error);
-      
-      let errorMessage = 'Failed to create account';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email is already registered';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak';
-      }
-      
-      toast.error(errorMessage);
+      toast.error(error.message || 'Failed to create account');
+    } finally {
       setLoading(false);
     }
   };

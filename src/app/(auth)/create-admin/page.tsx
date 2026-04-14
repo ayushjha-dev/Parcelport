@@ -6,9 +6,6 @@ import { Package2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { auth, db } from '@/lib/firebase/client';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 export default function CreateAdminPage() {
@@ -39,47 +36,30 @@ export default function CreateAdminPage() {
     setLoading(true);
 
     try {
-      // Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email.trim().toLowerCase(),
-        formData.password
-      );
-
-      const user = userCredential.user;
-
-      // Update display name
-      await updateProfile(user, {
-        displayName: formData.fullName,
+      const response = await fetch('/api/auth/create-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+        }),
       });
 
-      // Create user document in Firestore with admin role
-      await setDoc(doc(db, 'users', user.uid), {
-        email: formData.email.trim().toLowerCase(),
-        displayName: formData.fullName,
-        role: 'admin',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create admin account');
+      }
 
       toast.success('Admin account created successfully!');
-      
-      // Sign out and redirect to login
-      await auth.signOut();
       router.push('/login');
     } catch (error: any) {
       console.error('Admin creation error:', error);
-      
-      let errorMessage = 'Failed to create admin account';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email is already registered';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak';
-      }
-      
-      toast.error(errorMessage);
+      toast.error(error.message || 'Failed to create admin account');
+    } finally {
       setLoading(false);
     }
   };

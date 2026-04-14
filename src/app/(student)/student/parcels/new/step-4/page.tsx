@@ -11,7 +11,6 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useParcelRegistrationStore } from '@/stores/parcelRegistrationStore';
 import { useAuth } from '@/hooks/useAuth';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'sonner';
 
 export default function RegisterParcelStep4Page() {
@@ -123,38 +122,34 @@ export default function RegisterParcelStep4Page() {
 
     try {
       console.log('Starting file upload...');
-      // Upload payment screenshot to Firebase Storage
+      // Upload payment screenshot to Supabase Storage via API
       let screenshotUrl = '';
       if (formData.screenshot) {
         try {
-          const storage = getStorage();
-          const timestamp = Date.now();
-          const fileName = `payment-screenshots/${user?.id}/${timestamp}_${formData.screenshot.name}`;
-          const storageRef = ref(storage, fileName);
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', formData.screenshot);
+          uploadFormData.append('bucket', 'payment-screenshots');
           
-          console.log('Uploading to:', fileName);
+          console.log('Uploading file:', formData.screenshot.name);
           
-          // Set a timeout for the upload
-          const uploadPromise = uploadBytes(storageRef, formData.screenshot);
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Upload timeout')), 30000)
-          );
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: uploadFormData,
+          });
           
-          await Promise.race([uploadPromise, timeoutPromise]);
-          screenshotUrl = await getDownloadURL(storageRef);
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            throw new Error(errorData.error || 'Upload failed');
+          }
+          
+          const uploadResult = await uploadResponse.json();
+          screenshotUrl = uploadResult.url;
           console.log('Upload successful, URL:', screenshotUrl);
         } catch (uploadError: any) {
           console.error('File upload error:', uploadError);
-          
-          // Check if it's a CORS error
-          if (uploadError.message?.includes('CORS') || uploadError.code === 'storage/unauthorized') {
-            toast.error('File upload failed due to storage configuration. Please contact support with your transaction details.');
-            // Continue without screenshot URL - admin can verify manually
-            screenshotUrl = 'UPLOAD_FAILED_CORS_ERROR';
-            console.warn('Continuing submission without screenshot due to CORS error');
-          } else {
-            throw new Error('Failed to upload payment screenshot. Please try again.');
-          }
+          toast.error('Failed to upload payment screenshot. Please try again.');
+          screenshotUrl = 'UPLOAD_FAILED';
+          console.warn('Continuing submission without screenshot');
         }
       }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
@@ -37,8 +37,12 @@ export async function POST(request: Request) {
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
 
-    // Upload to Supabase Storage
-    const supabase = await createClient();
+    // Use service role client for storage operations to bypass RLS
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(fileName, arrayBuffer, {

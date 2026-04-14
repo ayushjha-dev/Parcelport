@@ -9,7 +9,7 @@ export async function GET() {
     
     const { data: deliveryBoys, error } = await supabase
       .from('delivery_boys')
-      .select('*, profiles!delivery_boys_profile_id_fkey(full_name, email, mobile_number)')
+      .select('*, profiles!delivery_boys_profile_id_fkey(id, full_name, email, mobile_number, created_at)')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -17,9 +17,29 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch delivery boys' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, data: deliveryBoys });
+    // Transform data to match frontend expectations
+    const transformedData = deliveryBoys?.map((boy: any) => ({
+      id: boy.id,
+      full_name: boy.profiles?.full_name || boy.name,
+      email: boy.profiles?.email || '',
+      mobile_number: boy.profiles?.mobile_number || boy.mobile,
+      role: 'delivery',
+      created_at: boy.profiles?.created_at || boy.created_at,
+    })) || [];
+
+    return NextResponse.json({ success: true, deliveryBoys: transformedData });
   } catch (error) {
     console.error('Error fetching delivery boys:', error);
+    
+    if (error instanceof Error) {
+      if (error.message === 'Unauthorized') {
+        return NextResponse.json({ error: 'Please login to continue' }, { status: 401 });
+      }
+      if (error.message === 'Forbidden') {
+        return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      }
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch delivery boys' },
       { status: 500 }
