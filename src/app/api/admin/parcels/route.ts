@@ -1,39 +1,50 @@
 import { NextResponse } from 'next/server';
-import { errorResponse, successResponse, db } from '@/lib/api-utils';
-import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth/session';
 
 export async function GET(request: Request) {
   try {
+    await requireAuth(['admin']);
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
 
-    const parcelsRef = collection(db, 'parcels');
-    const constraints: any[] = [orderBy('created_at', 'desc')];
+    const supabase = await createClient();
+    let query = supabase
+      .from('parcels')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
 
     if (status && status !== 'all') {
-      constraints.push(where('status', '==', status));
+      query = query.eq('status', status);
     }
 
-    const q = query(parcelsRef, ...constraints, limit(100));
-    const snapshot = await getDocs(q);
-    
-    const parcels = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Record<string, any>[];
+    const { data: parcels, error } = await query;
 
-    // Apply search filter in memory if needed
+    if (error) {
+      console.error('Error fetching parcels:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch parcels' },
+        { status: 500 }
+      );
+    }
+
+    // Apply search filter if needed
     const filtered = search
       ? parcels.filter(p => 
-          String(p.drid as string)?.toLowerCase().includes(search.toLowerCase()) ||
-          String(p.student_name as string)?.toLowerCase().includes(search.toLowerCase())
+          p.drid?.toLowerCase().includes(search.toLowerCase()) ||
+          p.student_name?.toLowerCase().includes(search.toLowerCase()) ||
+          p.student_roll_no?.toLowerCase().includes(search.toLowerCase())
         )
       : parcels;
 
-    return successResponse(filtered);
+    return NextResponse.json({ success: true, data: filtered });
   } catch (error) {
     console.error('Error fetching parcels:', error);
-    return errorResponse(error instanceof Error ? error.message : 'Failed to fetch parcels');
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to fetch parcels' },
+      { status: 500 }
+    );
   }
 }

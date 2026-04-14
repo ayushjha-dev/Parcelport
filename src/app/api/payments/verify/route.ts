@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
-import { errorResponse, successResponse, db, parseBody, Timestamp } from '@/lib/api-utils';
+import { createClient } from '@/lib/supabase/server';
 import crypto from 'crypto';
 
 export async function POST(request: Request) {
@@ -10,7 +9,7 @@ export async function POST(request: Request) {
       razorpay_payment_id,
       razorpay_signature,
       parcel_id,
-    } = await parseBody(request);
+    } = await request.json();
 
     const sign = razorpay_order_id + '|' + razorpay_payment_id;
     const expectedSign = crypto
@@ -19,41 +18,45 @@ export async function POST(request: Request) {
       .digest('hex');
 
     if (razorpay_signature !== expectedSign) {
-      return errorResponse('Payment signature verification failed', 400);
+      return NextResponse.json(
+        { error: 'Payment signature verification failed' },
+        { status: 400 }
+      );
     }
+
+    const supabase = await createClient();
 
     // Update payment record
-    const paymentsRef = collection(db, 'payments');
-    const q = query(paymentsRef, where('razorpay_order_id', '==', razorpay_order_id));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.docs.length > 0) {
-      const paymentRef = snapshot.docs[0].ref;
-      await updateDoc(paymentRef, {
+    const { data: payment, error: paymentError } = await supabase
+      .from('payments')
+      .update({
         razorpay_payment_id,
         razorpay_signature,
-        status: 'completed',
-        verified_at: Timestamp.now(),
-        updated_at: Timestamp.now()
-      });
+        delivery_fee_status: 'verified',
+      })
+      .eq('razorpay_order_id', razorpay_order_id)
+      .select()
+      .single();
 
-      // Update parcel status if available
-      if (parcel_id) {
-        const parcelsRef = collection(db, 'parcels');
-        const pq = query(parcelsRef, where('id', '==', parcel_id));
-        const pSnapshot = await getDocs(pq);
-        if (pSnapshot.docs.length > 0) {
-          await updateDoc(pSnapshot.docs[0].ref, {
-            status: 'payment_verified',
-            updated_at: Timestamp.now()
-          });
-        }
-      }
+    if (paymentError) {
+      console.error('Error updating payment:', paymentError);
+      return NextResponse.json({ error: 'Failed to update payment' }, { status: 500 });
     }
 
-    return successResponse({ verified: true });
+    // Update parcel status
+    if (payment && payment.parcel_id) {
+      await supabase
+        .from('parcels')
+        .update({ status: 'payment_verified' })
+        .eq('id', payment.parcel_id);
+    }
+
+    return NextResponse.json({ success: true, verified: true });
   } catch (error) {
     console.error('Error verifying payment:', error);
-    return errorResponse(error instanceof Error ? error.message : 'Payment verification failed');
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Payment verification failed' },
+      { status: 500 }
+    );
   }
 }

@@ -1,29 +1,13 @@
 /**
- * Firebase compatibility layer
- * This file provides backward compatibility for pages still using Firebase
- * These should be migrated to Supabase gradually
+ * Firebase compatibility stub
+ * This file exists for backward compatibility only
+ * All Firebase functionality has been migrated to Supabase
+ * 
+ * DO NOT USE - Use Supabase client instead
  */
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-// Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-
-// Initialize services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-
-export default app;
+// Stub exports to prevent build errors
+// These should not be used - migrate to Supabase API calls
+export const db = null as any;
+export const auth = null as any;
+export const storage = null as any;

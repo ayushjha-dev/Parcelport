@@ -1,52 +1,88 @@
 import { NextResponse } from 'next/server';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { errorResponse, successResponse, db, parseBody, Timestamp } from '@/lib/api-utils';
+import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth/session';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ drid: string }> }
 ) {
   try {
+    const session = await requireAuth(['delivery_boy']);
     const { drid } = await params;
-    const { otp } = await parseBody(request);
+    const { otp, delivery_photo_url } = await request.json();
 
     if (!drid || !otp) {
-      return errorResponse('Missing DRID or OTP', 400);
+      return NextResponse.json({ error: 'Missing DRID or OTP' }, { status: 400 });
     }
 
-    // Find parcel by DRID
-    const parcelsRef = collection(db, 'parcels');
-    const q = query(parcelsRef, where('drid', '==', drid));
-    const snapshot = await getDocs(q);
+    const supabase = await createClient();
 
-    if (snapshot.docs.length === 0) {
-      return errorResponse('Parcel not found', 404);
+    // Get parcel
+    const { data: parcel, error: parcelError } = await supabase
+      .from('parcels')
+      .select('id')
+      .eq('drid', drid)
+      .single();
+
+    if (parcelError || !parcel) {
+      return NextResponse.json({ error: 'Parcel not found' }, { status: 404 });
     }
 
-    const parcelDoc = snapshot.docs[0];
-    const parcelData = parcelDoc.data();
+    // Get delivery boy ID
+    const { data: deliveryBoy } = await supabase
+      .from('delivery_boys')
+      .select('id')
+      .eq('profile_id', session.id)
+      .single();
+
+    if (!deliveryBoy) {
+      return NextResponse.json({ error: 'Delivery boy not found' }, { status: 404 });
+    }
+
+    // Get assignment and verify OTP
+    const { data: assignment, error: assignError } = await supabase
+      .from('delivery_assignments')
+      .select('otp_code')
+      .eq('parcel_id', parcel.id)
+      .eq('delivery_boy_id', deliveryBoy.id)
+      .single();
+
+    if (assignError || !assignment) {
+      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+    }
 
     // Verify OTP
-    if (parcelData.otp !== otp) {
-      return errorResponse('Invalid OTP', 400);
+    if (assignment.otp_code !== otp) {
+      return NextResponse.json({ error: 'Invalid OTP' }, { status: 400 });
     }
 
-    // Update parcel status
-    const parcelRef = doc(db, 'parcels', parcelDoc.id);
-    await updateDoc(parcelRef, {
-      status: 'delivered',
-      delivered_at: Timestamp.now(),
-      updated_at: Timestamp.now(),
-      otp_verified: true
-    });
+    // Update delivery assignment
+    await supabase
+      .from('delivery_assignments')
+      .update({
+        delivered_at: new Date().toISOString(),
+        otp_verified_at: new Date().toISOString(),
+        delivery_photo_url,
+      })
+      .eq('parcel_id', parcel.id)
+      .eq('delivery_boy_id', deliveryBoy.id);
 
-    return successResponse({ 
+    // Update parcel status
+    await supabase
+      .from('parcels')
+      .update({ status: 'delivered', delivered_at: new Date().toISOString() })
+      .eq('id', parcel.id);
+
+    return NextResponse.json({ 
       success: true, 
       message: 'Parcel delivered successfully',
       drid 
     });
   } catch (error) {
     console.error('Error marking delivery:', error);
-    return errorResponse(error instanceof Error ? error.message : 'Failed to mark delivery');
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to mark delivery' },
+      { status: 500 }
+    );
   }
 }

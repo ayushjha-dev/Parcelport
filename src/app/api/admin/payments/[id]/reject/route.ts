@@ -1,50 +1,56 @@
 import { NextResponse } from 'next/server';
-import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { errorResponse, successResponse, db, parseBody, Timestamp } from '@/lib/api-utils';
+import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth/session';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requireAuth(['admin']);
     const { id } = await params;
-    const { reason } = await parseBody(request);
+    const { reason } = await request.json();
 
     if (!id) {
-      return errorResponse('Missing payment ID', 400);
+      return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+
+    // Get payment details
+    const { data: payment, error: paymentError } = await supabase
+      .from('payments')
+      .select('parcel_id')
+      .eq('id', id)
+      .single();
+
+    if (paymentError || !payment) {
+      return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
     }
 
     // Update payment status
-    const paymentRef = doc(db, 'payments', id);
-    await updateDoc(paymentRef, {
-      status: 'failed',
-      rejection_reason: reason || 'Rejected by admin',
-      rejected_at: Timestamp.now(),
-      updated_at: Timestamp.now()
-    });
+    await supabase
+      .from('payments')
+      .update({
+        delivery_fee_status: 'rejected',
+        rejection_reason: reason || 'Rejected by admin',
+      })
+      .eq('id', id);
 
-    // Get payment details to find associated parcel
-    const paymentsRef = collection(db, 'payments');
-    const q = query(paymentsRef, where('parcel_id', '==', id));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.docs.length > 0) {
-      const paymentDoc = snapshot.docs[0].data();
-      const parcelId = paymentDoc.parcel_id;
-
-      // Update parcel status
-      if (parcelId) {
-        const parcelRef = doc(db, 'parcels', parcelId);
-        await updateDoc(parcelRef, {
-          status: 'payment_failed',
-          updated_at: Timestamp.now()
-        });
-      }
+    // Update parcel status
+    if (payment.parcel_id) {
+      await supabase
+        .from('parcels')
+        .update({ status: 'payment_pending', rejected_reason: reason })
+        .eq('id', payment.parcel_id);
     }
 
-    return successResponse({ success: true, payment_id: id, rejected: true });
+    return NextResponse.json({ success: true, payment_id: id, rejected: true });
   } catch (error) {
     console.error('Error rejecting payment:', error);
-    return errorResponse(error instanceof Error ? error.message : 'Failed to reject payment');
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to reject payment' },
+      { status: 500 }
+    );
   }
 }

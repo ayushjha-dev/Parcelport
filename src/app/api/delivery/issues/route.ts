@@ -1,43 +1,61 @@
 import { NextResponse } from 'next/server';
-import { collection, addDoc, updateDoc, query, where, getDocs, doc } from 'firebase/firestore';
-import { errorResponse, successResponse, db, parseBody, Timestamp } from '@/lib/api-utils';
+import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth/session';
 
 export async function POST(request: Request) {
   try {
-    const body = await parseBody(request);
-    const { drid, issue_type, description, reported_by_id } = body;
+    const session = await requireAuth(['delivery_boy']);
+    const body = await request.json();
+    const { parcel_id, failure_type, failure_note, failure_photo_url } = body;
 
-    if (!drid || !reported_by_id) {
-      return errorResponse('Missing required fields', 400);
+    if (!parcel_id) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Create issue record
-    const issuesRef = collection(db, 'delivery_issues');
-    const issueDoc = await addDoc(issuesRef, {
-      drid,
-      issue_type,
-      description,
-      reported_by_id,
-      created_at: Timestamp.now(),
-      status: 'open'
-    });
+    const supabase = await createClient();
+
+    // Get delivery boy ID
+    const { data: deliveryBoy } = await supabase
+      .from('delivery_boys')
+      .select('id')
+      .eq('profile_id', session.id)
+      .single();
+
+    if (!deliveryBoy) {
+      return NextResponse.json({ error: 'Delivery boy not found' }, { status: 404 });
+    }
+
+    // Update delivery assignment with failure info
+    const { data: assignment, error: assignError } = await supabase
+      .from('delivery_assignments')
+      .update({
+        failed_at: new Date().toISOString(),
+        failure_type,
+        failure_note,
+        failure_photo_url,
+      })
+      .eq('parcel_id', parcel_id)
+      .eq('delivery_boy_id', deliveryBoy.id)
+      .select()
+      .single();
+
+    if (assignError) {
+      console.error('Error updating assignment:', assignError);
+      return NextResponse.json({ error: 'Failed to report issue' }, { status: 500 });
+    }
 
     // Update parcel status
-    const parcelsRef = collection(db, 'parcels');
-    const q = query(parcelsRef, where('drid', '==', drid));
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.docs.length > 0) {
-      const parcelRef = doc(db, 'parcels', snapshot.docs[0].id);
-      await updateDoc(parcelRef, {
-        status: 'issue_reported',
-        updated_at: Timestamp.now()
-      });
-    }
+    await supabase
+      .from('parcels')
+      .update({ status: 'failed_delivery' })
+      .eq('id', parcel_id);
 
-    return successResponse({ id: issueDoc.id, drid, issue_type });
+    return NextResponse.json({ success: true, data: assignment });
   } catch (error) {
     console.error('Error reporting delivery issue:', error);
-    return errorResponse(error instanceof Error ? error.message : 'Failed to report issue');
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to report issue' },
+      { status: 500 }
+    );
   }
 }

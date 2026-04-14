@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { errorResponse, successResponse, db, parseBody, Timestamp } from '@/lib/api-utils';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
   request: Request,
@@ -10,26 +9,27 @@ export async function GET(
     const { drid } = await params;
 
     if (!drid) {
-      return errorResponse('Missing DRID', 400);
+      return NextResponse.json({ error: 'Missing DRID' }, { status: 400 });
     }
 
-    const parcelsRef = collection(db, 'parcels');
-    const q = query(parcelsRef, where('drid', '==', drid));
-    const snapshot = await getDocs(q);
+    const supabase = await createClient();
+    const { data: parcel, error } = await supabase
+      .from('parcels')
+      .select('*')
+      .eq('drid', drid)
+      .single();
 
-    if (snapshot.docs.length === 0) {
-      return errorResponse('Parcel not found', 404);
+    if (error || !parcel) {
+      return NextResponse.json({ error: 'Parcel not found' }, { status: 404 });
     }
 
-    const parcel = {
-      id: snapshot.docs[0].id,
-      ...snapshot.docs[0].data()
-    };
-
-    return successResponse(parcel);
+    return NextResponse.json({ success: true, data: parcel });
   } catch (error) {
     console.error('Error fetching parcel:', error);
-    return errorResponse(error instanceof Error ? error.message : 'Failed to fetch parcel');
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to fetch parcel' },
+      { status: 500 }
+    );
   }
 }
 
@@ -39,29 +39,29 @@ export async function PATCH(
 ) {
   try {
     const { drid } = await params;
-    const body = await parseBody(request);
+    const body = await request.json();
 
     if (!drid) {
-      return errorResponse('Missing DRID', 400);
+      return NextResponse.json({ error: 'Missing DRID' }, { status: 400 });
     }
 
-    const parcelsRef = collection(db, 'parcels');
-    const q = query(parcelsRef, where('drid', '==', drid));
-    const snapshot = await getDocs(q);
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('parcels')
+      .update(body)
+      .eq('drid', drid);
 
-    if (snapshot.docs.length === 0) {
-      return errorResponse('Parcel not found', 404);
+    if (error) {
+      console.error('Error updating parcel:', error);
+      return NextResponse.json({ error: 'Failed to update parcel' }, { status: 500 });
     }
 
-    const parcelRef = doc(db, 'parcels', snapshot.docs[0].id);
-    await updateDoc(parcelRef, {
-      ...body,
-      updated_at: Timestamp.now()
-    });
-
-    return successResponse({ success: true, drid });
+    return NextResponse.json({ success: true, drid });
   } catch (error) {
     console.error('Error updating parcel:', error);
-    return errorResponse(error instanceof Error ? error.message : 'Failed to update parcel');
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to update parcel' },
+      { status: 500 }
+    );
   }
 }

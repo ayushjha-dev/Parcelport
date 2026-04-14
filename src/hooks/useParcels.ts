@@ -1,35 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { db } from '@/lib/firebase/client';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  doc, 
-  getDoc, 
-  addDoc, 
-  updateDoc,
-  serverTimestamp,
-  orderBy
-} from 'firebase/firestore';
 import { Parcel } from '@/types/database';
 
 export function useParcels(studentId?: string, status?: string) {
   return useQuery({
     queryKey: ['parcels', studentId, status],
     queryFn: async () => {
-      const parcelsRef = collection(db, 'parcels');
-      let q = query(parcelsRef, orderBy('created_at', 'desc'));
+      const params = new URLSearchParams();
+      if (studentId) params.append('studentId', studentId);
+      if (status) params.append('status', status);
       
-      if (studentId) {
-        q = query(q, where('student_id', '==', studentId));
-      }
-      if (status) {
-        q = query(q, where('status', '==', status));
-      }
+      const response = await fetch(`/api/parcels?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch parcels');
       
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Parcel));
+      const data = await response.json();
+      return data.data as Parcel[];
     },
   });
 }
@@ -38,16 +22,11 @@ export function useParcel(drid: string) {
   return useQuery({
     queryKey: ['parcel', drid],
     queryFn: async () => {
-      const parcelsRef = collection(db, 'parcels');
-      const q = query(parcelsRef, where('drid', '==', drid));
-      const snapshot = await getDocs(q);
+      const response = await fetch(`/api/parcels/${drid}`);
+      if (!response.ok) throw new Error('Parcel not found');
       
-      if (snapshot.empty) {
-        throw new Error('Parcel not found');
-      }
-      
-      const docData = snapshot.docs[0];
-      return { id: docData.id, ...docData.data() } as Parcel;
+      const data = await response.json();
+      return data.data as Parcel;
     },
     enabled: !!drid,
   });
@@ -58,13 +37,16 @@ export function useCreateParcel() {
 
   return useMutation({
     mutationFn: async (data: Partial<Parcel>) => {
-      const parcelsRef = collection(db, 'parcels');
-      const docRef = await addDoc(parcelsRef, {
-        ...data,
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
+      const response = await fetch('/api/parcels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
-      return { id: docRef.id, ...data };
+      
+      if (!response.ok) throw new Error('Failed to create parcel');
+      
+      const result = await response.json();
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parcels'] });
@@ -77,22 +59,16 @@ export function useUpdateParcel(drid: string) {
 
   return useMutation({
     mutationFn: async (data: Partial<Parcel>) => {
-      // Find document by DRID
-      const parcelsRef = collection(db, 'parcels');
-      const q = query(parcelsRef, where('drid', '==', drid));
-      const snapshot = await getDocs(q);
-      
-      if (snapshot.empty) {
-        throw new Error('Parcel not found');
-      }
-      
-      const docRef = doc(db, 'parcels', snapshot.docs[0].id);
-      await updateDoc(docRef, {
-        ...data,
-        updated_at: serverTimestamp(),
+      const response = await fetch(`/api/parcels/${drid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
       
-      return { id: snapshot.docs[0].id, ...data };
+      if (!response.ok) throw new Error('Failed to update parcel');
+      
+      const result = await response.json();
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parcel', drid] });

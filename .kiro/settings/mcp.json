@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=lovtryryapotbdabzogw",
+      "autoApprove": [
+        "list_tables",
+        "list_migrations",
+        "get_advisors",
+        "execute_sql",
+        "apply_migration"
+      ]
+    }
+  }
+}
