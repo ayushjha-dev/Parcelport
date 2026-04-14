@@ -29,10 +29,25 @@ export async function POST(request: NextRequest) {
       .eq('email', email.toLowerCase())
       .single();
 
-    if (error || !profile) {
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { error: 'Database error. Please check your Supabase configuration.' },
+        { status: 500 }
+      );
+    }
+
+    if (!profile) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
+      );
+    }
+
+    if (!profile.password_hash) {
+      return NextResponse.json(
+        { error: 'Account not properly configured. Please contact support.' },
+        { status: 500 }
       );
     }
 
