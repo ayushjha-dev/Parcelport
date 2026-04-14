@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 export default function AdminProfilePage() {
-  const { user, profile, updateUserProfile, signOut } = useAuth();
+  const { user, logout } = useAuth('admin');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -23,25 +23,33 @@ export default function AdminProfilePage() {
   });
 
   useEffect(() => {
-    if (user && profile) {
+    if (user) {
       setFormData({
-        full_name: profile.full_name || '',
+        full_name: user.full_name || '',
         email: user.email || '',
-        mobile_number: profile.mobile_number || '',
+        mobile_number: user.mobile_number || '',
       });
     }
-  }, [user, profile]);
-
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await updateUserProfile({
-        full_name: formData.full_name,
-        mobile_number: formData.mobile_number,
+      // Call API to update profile
+      const response = await fetch('/api/profile/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: formData.full_name,
+          mobile_number: formData.mobile_number,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
       
       toast.success('Profile updated successfully!');
     } catch (error) {
@@ -56,8 +64,7 @@ export default function AdminProfilePage() {
     if (confirm('Are you sure you want to sign out?')) {
       setSigningOut(true);
       try {
-        await signOut();
-        router.push('/login');
+        await logout();
       } catch (error) {
         console.error('Sign out error:', error);
         toast.error('Failed to sign out');
@@ -66,7 +73,7 @@ export default function AdminProfilePage() {
     }
   };
 
-  const profileName = formData.full_name || profile?.full_name || '';
+  const profileName = formData.full_name || user?.full_name || '';
   const profileEmail = formData.email || user?.email || '';
 
   return (
