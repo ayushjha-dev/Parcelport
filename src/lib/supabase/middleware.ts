@@ -1,13 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import type { Database } from '@/lib/supabase/database.types';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
-  const supabase = createServerClient<Database>(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -61,12 +60,14 @@ export async function updateSession(request: NextRequest) {
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single<{ role: Database['public']['Enums']['user_role'] }>();
+      .single();
 
     const url = request.nextUrl.clone();
-    if (profile?.role === 'admin') {
+    const role = (profile as any)?.role;
+    
+    if (role === 'admin') {
       url.pathname = '/admin/dashboard';
-    } else if (profile?.role === 'delivery_boy') {
+    } else if (role === 'delivery_boy') {
       url.pathname = '/delivery/dashboard';
     } else {
       url.pathname = '/student/dashboard';
