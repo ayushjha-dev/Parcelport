@@ -30,6 +30,28 @@ export default function RegisterParcelStep4Page() {
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Load data from store on mount
+  useEffect(() => {
+    console.log('Step 4 mounted, registration data:', registrationData);
+    
+    // Check if we have data from previous steps
+    if (!registrationData.fullName || !registrationData.trackingId) {
+      console.warn('Missing data from previous steps, redirecting to step 1');
+      toast.error('Please complete all previous steps first');
+      router.push('/student/parcels/new/step-1');
+    }
+  }, []);
+
+  // Update form data when registration data changes
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      paymentMethod: registrationData.paymentMethod || prev.paymentMethod,
+      transactionId: registrationData.transactionId || prev.transactionId,
+      paymentDate: registrationData.paymentDate || prev.paymentDate,
+    }));
+  }, [registrationData]);
+
   const paymentMethods = [
     { value: 'upi', label: 'UPI / GPay / PhonePe', icon: '📱' },
     { value: 'netbanking', label: 'Net Banking', icon: '🏦' },
@@ -80,12 +102,19 @@ export default function RegisterParcelStep4Page() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('=== PARCEL SUBMISSION STARTED ===');
+    console.log('Form Data:', formData);
+    console.log('Registration Data:', registrationData);
+    console.log('User:', user);
+    
     if (!isFormValid()) {
+      console.error('Form validation failed');
       toast.error('Please fill in all required fields before submitting.');
       return;
     }
 
     if (!user) {
+      console.error('User not logged in');
       toast.error('You must be logged in to register a parcel.');
       return;
     }
@@ -93,16 +122,24 @@ export default function RegisterParcelStep4Page() {
     setIsSubmitting(true);
 
     try {
+      console.log('Starting file upload...');
       // Upload payment screenshot to Firebase Storage
       let screenshotUrl = '';
       if (formData.screenshot) {
-        const storage = getStorage();
-        const timestamp = Date.now();
-        const fileName = `payment-screenshots/${user.uid}/${timestamp}_${formData.screenshot.name}`;
-        const storageRef = ref(storage, fileName);
-        
-        await uploadBytes(storageRef, formData.screenshot);
-        screenshotUrl = await getDownloadURL(storageRef);
+        try {
+          const storage = getStorage();
+          const timestamp = Date.now();
+          const fileName = `payment-screenshots/${user.uid}/${timestamp}_${formData.screenshot.name}`;
+          const storageRef = ref(storage, fileName);
+          
+          console.log('Uploading to:', fileName);
+          await uploadBytes(storageRef, formData.screenshot);
+          screenshotUrl = await getDownloadURL(storageRef);
+          console.log('Upload successful, URL:', screenshotUrl);
+        } catch (uploadError) {
+          console.error('File upload error:', uploadError);
+          throw new Error('Failed to upload payment screenshot');
+        }
       }
 
       // Update store with payment data
@@ -117,26 +154,26 @@ export default function RegisterParcelStep4Page() {
       const parcelData = {
         // Student information
         student_id: user.uid,
-        student_name: registrationData.fullName,
-        student_email: registrationData.email,
-        student_phone: registrationData.mobile,
+        student_name: registrationData.fullName || user.displayName || 'Unknown',
+        student_email: registrationData.email || user.email || '',
+        student_phone: registrationData.mobile || '',
         
         // Delivery address
-        hostel_block: registrationData.hostelBlock,
-        floor_number: registrationData.floorNumber,
-        room_number: registrationData.roomNumber,
-        landmark: registrationData.landmark,
+        hostel_block: registrationData.hostelBlock || '',
+        floor_number: registrationData.floorNumber || '',
+        room_number: registrationData.roomNumber || '',
+        landmark: registrationData.landmark || '',
         
         // Parcel information
-        tracking_id: registrationData.trackingId,
-        courier_company: registrationData.courierCompany,
-        description: registrationData.description,
-        weight_range: registrationData.weightRange,
-        expected_date: registrationData.expectedDate,
-        is_fragile: registrationData.isFragile,
+        tracking_id: registrationData.trackingId || '',
+        courier_company: registrationData.courierCompany || '',
+        description: registrationData.description || '',
+        weight_range: registrationData.weightRange || '',
+        expected_date: registrationData.expectedDate || '',
+        is_fragile: registrationData.isFragile || false,
         
         // Delivery preferences
-        preferred_time_slot: registrationData.timeSlot,
+        preferred_time_slot: registrationData.timeSlot || '',
         
         // Payment information
         payment_method: formData.paymentMethod,
@@ -147,6 +184,8 @@ export default function RegisterParcelStep4Page() {
         payment_status: 'pending_verification',
       };
 
+      console.log('Submitting parcel data:', parcelData);
+
       // Submit to API
       const response = await fetch('/api/parcels', {
         method: 'POST',
@@ -156,23 +195,29 @@ export default function RegisterParcelStep4Page() {
         body: JSON.stringify(parcelData),
       });
 
+      console.log('API Response status:', response.status);
       const result = await response.json();
+      console.log('API Response data:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to register parcel');
       }
 
       // Success!
+      console.log('=== PARCEL SUBMISSION SUCCESSFUL ===');
       toast.success('Parcel registered successfully!');
       
       // Reset the store
       reset();
       
       // Redirect to success page or parcels list
-      router.push('/student/parcels?success=true');
+      setTimeout(() => {
+        router.push('/student/parcels?success=true');
+      }, 1000);
       
     } catch (error: any) {
-      console.error('Error submitting parcel:', error);
+      console.error('=== PARCEL SUBMISSION ERROR ===');
+      console.error('Error details:', error);
       toast.error(error.message || 'Failed to register parcel. Please try again.');
     } finally {
       setIsSubmitting(false);

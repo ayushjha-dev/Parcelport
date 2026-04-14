@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface ParcelRegistrationData {
   // Step 1: Personal Information
@@ -67,32 +67,54 @@ export const useParcelRegistrationStore = create<ParcelRegistrationStore>()(
     (set, get) => ({
       data: initialData,
       
-      updateStep1: (newData) => 
+      updateStep1: (newData) => {
+        console.log('Store: Updating Step 1 with:', newData);
         set((state) => ({ 
           data: { ...state.data, ...newData } 
-        })),
+        }));
+        console.log('Store: Step 1 updated, current data:', get().data);
+      },
       
-      updateStep2: (newData) => 
+      updateStep2: (newData) => {
+        console.log('Store: Updating Step 2 with:', newData);
         set((state) => ({ 
           data: { ...state.data, ...newData } 
-        })),
+        }));
+        console.log('Store: Step 2 updated, current data:', get().data);
+      },
       
-      updateStep3: (newData) => 
+      updateStep3: (newData) => {
+        console.log('Store: Updating Step 3 with:', newData);
         set((state) => ({ 
           data: { ...state.data, ...newData } 
-        })),
+        }));
+        console.log('Store: Step 3 updated, current data:', get().data);
+      },
       
-      updateStep4: (newData) => 
+      updateStep4: (newData) => {
+        console.log('Store: Updating Step 4 with:', newData);
         set((state) => ({ 
           data: { ...state.data, ...newData } 
-        })),
+        }));
+        console.log('Store: Step 4 updated, current data:', get().data);
+      },
       
-      reset: () => set({ data: initialData }),
+      reset: () => {
+        console.log('Store: Resetting to initial data');
+        set({ data: initialData });
+      },
       
       getData: () => get().data,
     }),
     {
       name: 'parcel-registration-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        data: {
+          ...state.data,
+          screenshot: null, // Don't persist File objects
+        },
+      }),
     }
   )
 );
