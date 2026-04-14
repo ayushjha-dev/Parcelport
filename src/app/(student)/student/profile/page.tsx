@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 export default function ProfilePage() {
-  const { user, updateUserProfile, getUserProfile } = useAuth();
+  const { user } = useAuth('student');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     displayName: '',
@@ -21,18 +21,14 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    const loadProfile = async () => {
-      if (user) {
-        const profile = await getUserProfile();
-        setFormData({
-          displayName: profile?.full_name || '',
-          email: user.email || '',
-          mobile: profile?.mobile_number || '',
-          room: profile?.room_number || '',
-        });
-      }
-    };
-    loadProfile();
+    if (user) {
+      setFormData({
+        displayName: user.full_name || '',
+        email: user.email || '',
+        mobile: user.mobile_number || '',
+        room: user.room_number || '',
+      });
+    }
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,11 +36,18 @@ export default function ProfilePage() {
     setLoading(true);
 
     try {
-      await updateUserProfile({
-        full_name: formData.displayName,
-        mobile_number: formData.mobile,
-        room_number: formData.room,
+      const response = await fetch('/api/profile/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: formData.displayName,
+          mobile_number: formData.mobile,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
       
       toast.success('Profile updated successfully!');
     } catch (error) {

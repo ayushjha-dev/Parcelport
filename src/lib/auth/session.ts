@@ -8,6 +8,12 @@ export interface SessionUser {
   full_name: string;
   role: UserRole;
   mobile_number: string;
+  student_roll_no?: string | null;
+  course_branch?: string | null;
+  hostel_block?: string | null;
+  floor_number?: string | null;
+  room_number?: string | null;
+  landmark_note?: string | null;
 }
 
 const SESSION_COOKIE_NAME = 'parcelport_session';
@@ -36,7 +42,7 @@ export async function getSession(): Promise<SessionUser | null> {
     const supabase = await createClient();
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name, role, mobile_number, is_active')
+      .select('id, email, full_name, role, mobile_number, student_roll_no, course_branch, hostel_block, floor_number, room_number, landmark_note, is_active')
       .eq('id', sessionCookie.value)
       .single();
 
@@ -51,6 +57,12 @@ export async function getSession(): Promise<SessionUser | null> {
       full_name: profile.full_name,
       role: profile.role as UserRole,
       mobile_number: profile.mobile_number,
+      student_roll_no: profile.student_roll_no,
+      course_branch: profile.course_branch,
+      hostel_block: profile.hostel_block,
+      floor_number: profile.floor_number,
+      room_number: profile.room_number,
+      landmark_note: profile.landmark_note,
     };
   } catch (error) {
     console.error('Session error:', error);

@@ -9,12 +9,12 @@ import { useAuth } from '@/hooks/useAuth';
 
 export function StudentSidebar() {
   const pathname = usePathname();
-  const { signOut } = useAuth();
+  const { logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
-    await signOut();
+    await logout();
     setIsSigningOut(false);
   };
 

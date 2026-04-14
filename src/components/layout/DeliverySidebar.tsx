@@ -8,12 +8,12 @@ import { useAuth } from '@/hooks/useAuth';
 
 export function DeliverySidebar() {
   const pathname = usePathname();
-  const { signOut } = useAuth();
+  const { logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
-    await signOut();
+    await logout();
     setIsSigningOut(false);
   };
 

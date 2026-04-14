@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 
 export default function RegisterParcelStep4Page() {
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { user } = useAuth('student');
   const { data: registrationData, updateStep4, reset } = useParcelRegistrationStore();
   
   const [formData, setFormData] = useState({
@@ -170,7 +170,7 @@ export default function RegisterParcelStep4Page() {
       const parcelData = {
         // Student information
         student_id: user?.id,
-        student_name: registrationData.fullName || profile?.full_name || 'Unknown',
+        student_name: registrationData.fullName || user?.full_name || 'Unknown',
         student_email: registrationData.email || user?.email || '',
         student_phone: registrationData.mobile || '',
         

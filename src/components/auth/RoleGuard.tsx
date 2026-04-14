@@ -14,7 +14,7 @@ interface RoleGuardProps {
 
 export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
   const router = useRouter();
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
@@ -26,25 +26,17 @@ export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
         return;
       }
 
-      // No profile found
-      if (!profile) {
-        setIsAuthorized(false);
-        toast.error('User profile not found. Please sign in again.');
-        router.replace('/login');
-        return;
-      }
-
       // Check if user has required role
-      if (!allowedRoles.includes(profile.role)) {
+      if (!allowedRoles.includes(user.role)) {
         setIsAuthorized(false);
         toast.error('You do not have permission to access this page.');
         
         // Redirect to appropriate dashboard
-        if (profile.role === 'admin') {
+        if (user.role === 'admin') {
           router.replace('/admin/dashboard');
-        } else if (profile.role === 'delivery_boy') {
+        } else if (user.role === 'delivery_boy') {
           router.replace('/delivery/dashboard');
-        } else if (profile.role === 'student') {
+        } else if (user.role === 'student') {
           router.replace('/student/dashboard');
         } else {
           router.replace('/login');
@@ -54,7 +46,7 @@ export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
 
       setIsAuthorized(true);
     }
-  }, [user, profile, loading, allowedRoles, router]);
+  }, [user, loading, allowedRoles, router]);
 
   if (loading) {
     return (

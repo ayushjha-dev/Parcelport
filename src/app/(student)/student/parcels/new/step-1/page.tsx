@@ -14,7 +14,7 @@ import { useParcelRegistrationStore } from '@/stores/parcelRegistrationStore';
 
 export default function RegisterParcelStep1Page() {
   const router = useRouter();
-  const { user, getUserProfile } = useAuth();
+  const { user } = useAuth('student');
   const { data: registrationData, updateStep1 } = useParcelRegistrationStore();
   const [profileData, setProfileData] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -28,22 +28,17 @@ export default function RegisterParcelStep1Page() {
   });
 
   useEffect(() => {
-    const loadProfile = async () => {
-      if (user) {
-        const profile = await getUserProfile();
-        setProfileData(profile);
-        setFormData({
-          fullName: profile?.full_name || user.email || '',
-          email: user.email || '',
-          mobile: profile?.mobile_number || '',
-          hostelBlock: profile?.hostel_block || 'b',
-          floorNumber: profile?.floor_number || '3',
-          roomNumber: profile?.room_number || '',
-          landmark: profile?.landmark_note || '',
-        });
-      }
-    };
-    loadProfile();
+    if (user) {
+      setFormData({
+        fullName: user.full_name || user.email || '',
+        email: user.email || '',
+        mobile: user.mobile_number || '',
+        hostelBlock: user.hostel_block || 'b',
+        floorNumber: user.floor_number || '3',
+        roomNumber: user.room_number || '',
+        landmark: user.landmark_note || '',
+      });
+    }
   }, [user]);
 
   const steps = [

@@ -9,9 +9,9 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { useRouter } from 'next/navigation';
 
 export default function StudentDashboardPage() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth('student');
   const router = useRouter();
-  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const displayName = user?.full_name || user?.email?.split('@')[0] || 'Student';
   const stats = [
     { icon: Package, label: 'Active Parcels', value: '0', change: 'No parcel data yet', color: 'bg-[#d9e2ff]', textColor: 'text-[#04122e]' },
     { icon: CreditCard, label: 'Awaiting Payment', value: '0', change: 'No pending charges', color: 'bg-[#ffdad6]', textColor: 'text-[#ba1a1a]' },
