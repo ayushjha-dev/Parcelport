@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 export default function AdminProfilePage() {
-  const { user, logout } = useAuth('admin');
+  const { user, loading: authLoading, logout } = useAuth('admin');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
