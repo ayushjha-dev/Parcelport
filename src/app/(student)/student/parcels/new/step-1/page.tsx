@@ -33,13 +33,13 @@ export default function RegisterParcelStep1Page() {
         const profile = await getUserProfile();
         setProfileData(profile);
         setFormData({
-          fullName: user.displayName || user.email || '',
+          fullName: profile?.full_name || user.email || '',
           email: user.email || '',
-          mobile: profile?.mobile || user.phoneNumber || '',
-          hostelBlock: 'b',
-          floorNumber: '3',
-          roomNumber: profile?.room || '',
-          landmark: '',
+          mobile: profile?.mobile_number || '',
+          hostelBlock: profile?.hostel_block || 'b',
+          floorNumber: profile?.floor_number || '3',
+          roomNumber: profile?.room_number || '',
+          landmark: profile?.landmark_note || '',
         });
       }
     };

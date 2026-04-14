@@ -5,84 +5,33 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Mail, Phone, Camera, Save, LogOut } from 'lucide-react';
+import { User, Mail, Phone, Save, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db, storage } from '@/lib/firebase/client';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useRouter } from 'next/navigation';
 
 export default function AdminProfilePage() {
-  const { user, updateUserProfile, getUserProfile, signOut } = useAuth();
+  const { user, profile, updateUserProfile, signOut } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
-    displayName: '',
+    full_name: '',
     email: '',
-    mobile: '',
-    photoURL: '',
+    mobile_number: '',
   });
 
   useEffect(() => {
-    const loadProfile = async () => {
-      if (user) {
-        const profile = await getUserProfile();
-        setFormData({
-          displayName: user.displayName || '',
-          email: user.email || '',
-          mobile: profile?.mobile || '',
-          photoURL: user.photoURL || '',
-        });
-      }
-    };
-    loadProfile();
-  }, [user]);
-
-  const handlePhotoClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
+    if (user && profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        email: user.email || '',
+        mobile_number: profile.mobile_number || '',
+      });
     }
+  }, [user, profile]);
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB');
-      return;
-    }
-
-    setUploading(true);
-    try {
-      // Upload to Firebase Storage
-      const storageRef = ref(storage, `profile-photos/${user.uid}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const photoURL = await getDownloadURL(storageRef);
-
-      // Update Firestore
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { photoURL });
-
-      setFormData({ ...formData, photoURL });
-      toast.success('Profile photo updated successfully!');
-    } catch (error) {
-      console.error('Photo upload error:', error);
-      toast.error('Failed to upload photo. Please try again.');
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,8 +39,8 @@ export default function AdminProfilePage() {
 
     try {
       await updateUserProfile({
-        displayName: formData.displayName,
-        mobile: formData.mobile,
+        full_name: formData.full_name,
+        mobile_number: formData.mobile_number,
       });
       
       toast.success('Profile updated successfully!');
@@ -117,9 +66,8 @@ export default function AdminProfilePage() {
     }
   };
 
-  const profileName = formData.displayName || user?.displayName || '';
+  const profileName = formData.full_name || profile?.full_name || '';
   const profileEmail = formData.email || user?.email || '';
-  const profilePhoto = formData.photoURL || user?.photoURL || '';
 
   return (
     <div className="min-h-screen">
@@ -130,33 +78,8 @@ export default function AdminProfilePage() {
           <Card className="rounded-3xl p-10 shadow-[0px_20px_40px_rgba(4,18,46,0.04)]">
             {/* Profile Header */}
             <div className="flex items-center gap-6 mb-10">
-              <div className="relative">
-                {profilePhoto ? (
-                  <img 
-                    src={profilePhoto} 
-                    alt="Profile" 
-                    className="w-24 h-24 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-[#04122e] text-white flex items-center justify-center text-3xl font-bold">
-                    {(profileName || profileEmail || 'A').slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={handlePhotoClick}
-                  disabled={uploading}
-                  className="absolute bottom-0 right-0 w-8 h-8 bg-[#04122e] text-white rounded-full flex items-center justify-center hover:bg-[#1a2744] transition-colors shadow-lg"
-                >
-                  <Camera className="w-4 h-4" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                />
+              <div className="w-24 h-24 rounded-full bg-[#04122e] text-white flex items-center justify-center text-3xl font-bold">
+                {(profileName || profileEmail || 'A').slice(0, 2).toUpperCase()}
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-[#04122e]">{profileName || 'Admin User'}</h2>
@@ -176,8 +99,8 @@ export default function AdminProfilePage() {
                     Full Name
                   </Label>
                   <Input 
-                    value={formData.displayName}
-                    onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                     placeholder="Your full name" 
                     className="bg-[#f0f4f8] border-transparent rounded-xl" 
                   />
@@ -200,8 +123,8 @@ export default function AdminProfilePage() {
                     Mobile Number
                   </Label>
                   <Input 
-                    value={formData.mobile}
-                    onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                    value={formData.mobile_number}
+                    onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
                     placeholder="Add your mobile number" 
                     className="bg-[#f0f4f8] border-transparent rounded-xl" 
                   />
@@ -211,7 +134,7 @@ export default function AdminProfilePage() {
               <div className="pt-6 border-t border-[#eaeef2] flex justify-between items-center">
                 <Button 
                   type="submit"
-                  disabled={loading || uploading}
+                  disabled={loading}
                   className="bg-gradient-to-br from-[#04122e] to-[#1a2744] text-white rounded-xl font-bold shadow-xl flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />

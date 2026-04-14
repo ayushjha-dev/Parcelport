@@ -1,11 +1,32 @@
 /**
  * Common API utilities for Supabase-based endpoints
  * Provides database query helpers and Supabase integration
+ * 
+ * NOTE: This file also exports Firebase utilities for legacy routes
+ * that are still using Firebase. These should be gradually migrated to Supabase.
  */
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database';
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, Timestamp } from 'firebase/firestore';
+import type { Database } from '@/lib/supabase/database.types';
+
+// Initialize Firebase for legacy routes
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+};
+
+const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+export const db = getFirestore(firebaseApp);
+
+// Export Firebase Timestamp for legacy routes
+export { Timestamp };
 
 // Initialize Supabase client for server-side operations
 export function getSupabaseClient() {

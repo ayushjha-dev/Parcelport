@@ -30,7 +30,7 @@ export default function MyParcelsPage() {
       try {
         // Query parcels collection for current user
         const parcelsRef = collection(db, 'parcels');
-        const q = query(parcelsRef, where('userId', '==', user.uid));
+        const q = query(parcelsRef, where('userId', '==', user.id));
         const querySnapshot = await getDocs(q);
 
         let all = 0;

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { UserRole } from '@/types/database';
+import type { Database } from '@/lib/supabase/database.types';
 import { loginSchema } from '@/lib/validations/auth';
 
 export default function LoginPage() {
@@ -51,9 +52,9 @@ export default function LoginPage() {
       // Get user profile from database
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('*')
         .eq('id', authData.user.id)
-        .single();
+        .single<Database['public']['Tables']['profiles']['Row']>();
 
       if (profileError || !profile) {
         await supabase.auth.signOut();
@@ -62,7 +63,7 @@ export default function LoginPage() {
         return;
       }
 
-      const userRole = profile.role as UserRole;
+      const userRole = profile.role;
 
       // Verify role matches selected role
       if (userRole !== selectedRole) {

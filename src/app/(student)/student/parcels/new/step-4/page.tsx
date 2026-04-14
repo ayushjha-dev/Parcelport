@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 
 export default function RegisterParcelStep4Page() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { data: registrationData, updateStep4, reset } = useParcelRegistrationStore();
   
   const [formData, setFormData] = useState({
@@ -129,7 +129,7 @@ export default function RegisterParcelStep4Page() {
         try {
           const storage = getStorage();
           const timestamp = Date.now();
-          const fileName = `payment-screenshots/${user.uid}/${timestamp}_${formData.screenshot.name}`;
+          const fileName = `payment-screenshots/${user?.id}/${timestamp}_${formData.screenshot.name}`;
           const storageRef = ref(storage, fileName);
           
           console.log('Uploading to:', fileName);
@@ -169,9 +169,9 @@ export default function RegisterParcelStep4Page() {
       // Prepare parcel data for API
       const parcelData = {
         // Student information
-        student_id: user.uid,
-        student_name: registrationData.fullName || user.displayName || 'Unknown',
-        student_email: registrationData.email || user.email || '',
+        student_id: user?.id,
+        student_name: registrationData.fullName || profile?.full_name || 'Unknown',
+        student_email: registrationData.email || user?.email || '',
         student_phone: registrationData.mobile || '',
         
         // Delivery address

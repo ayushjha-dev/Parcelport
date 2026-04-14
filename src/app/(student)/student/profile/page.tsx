@@ -25,10 +25,10 @@ export default function ProfilePage() {
       if (user) {
         const profile = await getUserProfile();
         setFormData({
-          displayName: user.displayName || '',
+          displayName: profile?.full_name || '',
           email: user.email || '',
-          mobile: profile?.mobile || '',
-          room: profile?.room || '',
+          mobile: profile?.mobile_number || '',
+          room: profile?.room_number || '',
         });
       }
     };
@@ -41,9 +41,9 @@ export default function ProfilePage() {
 
     try {
       await updateUserProfile({
-        displayName: formData.displayName,
-        mobile: formData.mobile,
-        room: formData.room,
+        full_name: formData.displayName,
+        mobile_number: formData.mobile,
+        room_number: formData.room,
       });
       
       toast.success('Profile updated successfully!');
@@ -55,7 +55,7 @@ export default function ProfilePage() {
     }
   };
 
-  const profileName = formData.displayName || user?.displayName || '';
+  const profileName = formData.displayName || user?.email?.split('@')[0] || '';
   const profileEmail = formData.email || user?.email || '';
 
   return (
