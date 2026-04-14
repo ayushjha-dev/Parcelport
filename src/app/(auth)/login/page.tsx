@@ -52,9 +52,9 @@ export default function LoginPage() {
       // Get user profile from database
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('role')
         .eq('id', authData.user.id)
-        .single<Database['public']['Tables']['profiles']['Row']>();
+        .single();
 
       if (profileError || !profile) {
         await supabase.auth.signOut();
@@ -63,7 +63,7 @@ export default function LoginPage() {
         return;
       }
 
-      const userRole = profile.role;
+      const userRole = profile.role as UserRole;
 
       // Verify role matches selected role
       if (userRole !== selectedRole) {

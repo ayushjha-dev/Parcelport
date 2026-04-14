@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase/database.types';
-
-type Profile = Database['public']['Tables']['profiles']['Row'];
+import type { Profile } from '@/types/database';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -65,17 +63,14 @@ export function useAuth() {
     }
   };
 
-  const updateUserProfile = async (data: Partial<Profile>) => {
+  const updateUserProfile = async (data: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>) => {
     if (!user) throw new Error('No user logged in');
 
     try {
-      const { error } = (await (
-        supabase as any
-      )
+      const { error } = await supabase
         .from('profiles')
         .update(data)
-        .eq('id', user.id)
-      );
+        .eq('id', user.id);
 
       if (error) throw error;
 
@@ -97,7 +92,7 @@ export function useAuth() {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single<Profile>();
+        .single();
 
       if (error) throw error;
       return data;

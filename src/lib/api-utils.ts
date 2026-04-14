@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, Timestamp } from 'firebase/firestore';
-import type { Database } from '@/lib/supabase/database.types';
+import type { Database } from '@/types/database';
 
 // Initialize Firebase for legacy routes
 const firebaseConfig = {
@@ -88,15 +88,15 @@ export async function getAuthUser(request: Request) {
 export async function verifyRole(userId: string, allowedRoles: string[]) {
   const supabase = getSupabaseClient();
   
-  const { data: profile, error } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', userId)
     .single();
 
-  if (error || !profile) {
+  if (error || !data) {
     return false;
   }
 
-  return allowedRoles.includes(profile.role);
+  return allowedRoles.includes((data as any).role);
 }

@@ -90,12 +90,12 @@ export default function RegisterPage() {
       // Create profile in database
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert([{
+        .insert({
           id: authData.user.id,
           email: validData.email,
           full_name: validData.full_name,
           mobile_number: `+91${validData.mobile_number}`,
-          role: 'student' as const,
+          role: 'student',
           student_roll_no: validData.student_roll_no,
           course_branch: validData.course_branch,
           hostel_block: validData.hostel_block,
@@ -103,7 +103,7 @@ export default function RegisterPage() {
           floor_number: validData.floor_number,
           landmark_note: formData.landmark.trim() || null,
           is_active: true,
-        }] as any);
+        });
 
       if (profileError) throw profileError;
 
