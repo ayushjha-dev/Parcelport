@@ -1,20 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Package2, LayoutDashboard, Package, CreditCard, Users, TrendingUp, Truck, LogOut, UserPlus, UserCog } from 'lucide-react';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Package2, LayoutDashboard, Package, CreditCard, Users, TrendingUp, Truck, UserPlus, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth();
 
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    await signOut();
-    setIsSigningOut(false);
+  const handleProfileClick = () => {
+    router.push('/admin/profile');
   };
 
   const navItems = [
@@ -75,23 +72,20 @@ export function AdminSidebar() {
 
       {/* User Profile */}
       <div className="px-4 mt-auto">
-        <div className="bg-white/5 rounded-xl p-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleProfileClick}
+          className="w-full bg-white/5 hover:bg-white/10 rounded-xl p-3 flex items-center gap-3 transition-colors cursor-pointer"
+        >
           <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center text-white font-bold text-sm">
             {(user?.email ?? 'A').slice(0, 2).toUpperCase()}
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden text-left">
             <p className="text-sm font-semibold text-white truncate">{user?.email ?? 'Admin account'}</p>
-            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tight">Signed in</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">View Profile</p>
           </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            className="text-slate-500 hover:text-red-400 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
+          <Settings className="w-5 h-5 text-slate-400" />
+        </button>
       </div>
     </aside>
   );
