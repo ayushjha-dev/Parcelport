@@ -5,7 +5,7 @@ import { hashPassword } from '@/lib/auth/password';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { fullName, email, password } = body;
+    const { fullName, email, password, phone } = body;
 
     // Validate input
     if (!fullName || !email || !password) {
@@ -41,12 +41,17 @@ export async function POST(request: NextRequest) {
     // Hash password
     const passwordHash = await hashPassword(password);
 
+    // Generate UUID for new admin
+    const userId = crypto.randomUUID();
+
     // Create admin profile
     const { data: profile, error } = await supabase
       .from('profiles')
       .insert({
+        id: userId,
         email: email.toLowerCase(),
         full_name: fullName,
+        mobile_number: phone || '0000000000',
         role: 'admin',
         password_hash: passwordHash,
         is_active: true,
