@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Package2, LayoutDashboard, Package, CreditCard, Users, TrendingUp, Truck, LogOut } from 'lucide-react';
+import { Package2, LayoutDashboard, Package, CreditCard, Users, TrendingUp, Truck, LogOut, UserPlus, UserCog } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -23,7 +23,8 @@ export function AdminSidebar() {
     { href: '/admin/payments', icon: CreditCard, label: 'Payments', badge: null },
     { href: '/admin/assign', icon: Truck, label: 'Assign Delivery', badge: null },
     { href: '/admin/revenue', icon: TrendingUp, label: 'Revenue', badge: null },
-    { href: '/admin/delivery-boys', icon: Users, label: 'Delivery Boys', badge: null },
+    { href: '/admin/create-admin', icon: UserPlus, label: 'Create New Admin', badge: null },
+    { href: '/admin/delivery-boys', icon: Users, label: 'List of Delivery Boys', badge: null },
   ];
 
   return (

@@ -10,7 +10,7 @@ import Link from 'next/link';
 export default function DeliveryBoysPage() {
   return (
     <div className="min-h-screen">
-      <TopBar title="Delivery Boy Management" subtitle="Manage delivery personnel" showSearch />
+      <TopBar title="List of Delivery Boys" subtitle="View and manage all delivery personnel" showSearch />
       
       <div className="pt-28 pb-12 px-10">
         <div className="flex justify-between items-center mb-6">
