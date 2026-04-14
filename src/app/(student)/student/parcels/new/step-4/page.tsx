@@ -133,12 +133,28 @@ export default function RegisterParcelStep4Page() {
           const storageRef = ref(storage, fileName);
           
           console.log('Uploading to:', fileName);
-          await uploadBytes(storageRef, formData.screenshot);
+          
+          // Set a timeout for the upload
+          const uploadPromise = uploadBytes(storageRef, formData.screenshot);
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Upload timeout')), 30000)
+          );
+          
+          await Promise.race([uploadPromise, timeoutPromise]);
           screenshotUrl = await getDownloadURL(storageRef);
           console.log('Upload successful, URL:', screenshotUrl);
-        } catch (uploadError) {
+        } catch (uploadError: any) {
           console.error('File upload error:', uploadError);
-          throw new Error('Failed to upload payment screenshot');
+          
+          // Check if it's a CORS error
+          if (uploadError.message?.includes('CORS') || uploadError.code === 'storage/unauthorized') {
+            toast.error('File upload failed due to storage configuration. Please contact support with your transaction details.');
+            // Continue without screenshot URL - admin can verify manually
+            screenshotUrl = 'UPLOAD_FAILED_CORS_ERROR';
+            console.warn('Continuing submission without screenshot due to CORS error');
+          } else {
+            throw new Error('Failed to upload payment screenshot. Please try again.');
+          }
         }
       }
 
@@ -186,21 +202,35 @@ export default function RegisterParcelStep4Page() {
 
       console.log('Submitting parcel data:', parcelData);
 
-      // Submit to API
-      const response = await fetch('/api/parcels', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(parcelData),
-      });
+      // Submit to API with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      try {
+        const response = await fetch('/api/parcels', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(parcelData),
+          signal: controller.signal,
+        });
 
-      console.log('API Response status:', response.status);
-      const result = await response.json();
-      console.log('API Response data:', result);
+        clearTimeout(timeoutId);
+        console.log('API Response status:', response.status);
+        
+        const result = await response.json();
+        console.log('API Response data:', result);
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to register parcel');
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to register parcel');
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Request timeout. Please check your internet connection and try again.');
+        }
+        throw fetchError;
       }
 
       // Success!
@@ -458,6 +488,14 @@ export default function RegisterParcelStep4Page() {
                       <span className="font-bold">Note:</span> Please ensure you complete the payment and upload the screenshot. Your parcel registration will be verified once the payment is confirmed by our team.
                     </p>
                   </div>
+                  
+                  {screenshotPreview && (
+                    <div className="bg-[#ffddb8]/30 border border-[#ffddb8] rounded-xl p-5">
+                      <p className="text-sm text-[#653e00] leading-relaxed">
+                        <span className="font-bold">Important:</span> If the upload fails, your registration will still be submitted with your transaction details. Our team will contact you to verify the payment manually.
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
 

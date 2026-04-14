@@ -8,9 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { auth, db } from '@/lib/firebase/client';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { registerSchema } from '@/lib/validations/auth';
 
@@ -19,6 +17,7 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -72,31 +71,40 @@ export default function RegisterPage() {
     try {
       const validData = parsedPayload.data;
 
-      // Register with Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, validData.email, validData.password);
-      const user = userCredential.user;
-
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+      // Register with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validData.email,
-        name: validData.full_name,
-        phone: `+91${validData.mobile_number}`,
-        role: 'student',
-        created_at: serverTimestamp(),
+        password: validData.password,
+        options: {
+          data: {
+            full_name: validData.full_name,
+            mobile_number: `+91${validData.mobile_number}`,
+          },
+        },
       });
 
-      // Create student document
-      await setDoc(doc(db, 'students', user.uid), {
-        user_id: user.uid,
-        enrollment_number: validData.student_roll_no,
-        hostel_block: validData.hostel_block,
-        room_number: validData.room_number,
-        floor_number: validData.floor_number,
-        year: new Date().getFullYear(),
-        department: validData.course_branch,
-        landmark_note: formData.landmark.trim(),
-        created_at: serverTimestamp(),
-      });
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('No user data returned');
+
+      // Create profile in database
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          email: validData.email,
+          full_name: validData.full_name,
+          mobile_number: `+91${validData.mobile_number}`,
+          role: 'student',
+          student_roll_no: validData.student_roll_no,
+          course_branch: validData.course_branch,
+          hostel_block: validData.hostel_block,
+          room_number: validData.room_number,
+          floor_number: validData.floor_number,
+          landmark_note: formData.landmark.trim() || null,
+          is_active: true,
+        });
+
+      if (profileError) throw profileError;
 
       toast.success('Account created successfully!');
       router.push('/student/dashboard');
@@ -104,13 +112,13 @@ export default function RegisterPage() {
       console.error('Registration error:', error);
       
       let errorMessage = 'Registration failed. Please try again.';
-      if (error && typeof error === 'object' && 'code' in error) {
-        const firebaseError = error as { code: string };
-        if (firebaseError.code === 'auth/email-already-in-use') {
+      if (error && typeof error === 'object' && 'message' in error) {
+        const supabaseError = error as { message: string };
+        if (supabaseError.message.includes('already registered')) {
           errorMessage = 'This email is already registered.';
-        } else if (firebaseError.code === 'auth/weak-password') {
+        } else if (supabaseError.message.includes('Password')) {
           errorMessage = 'Password is too weak. Use at least 6 characters.';
-        } else if (firebaseError.code === 'auth/invalid-email') {
+        } else if (supabaseError.message.includes('email')) {
           errorMessage = 'Invalid email address.';
         }
       }

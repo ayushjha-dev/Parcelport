@@ -8,12 +8,25 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.2-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-[![Firebase](https://img.shields.io/badge/Firebase-12.12-orange?style=for-the-badge&logo=firebase)](https://firebase.google.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-Latest-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38bdf8?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 
-[Features](#-features) • [Tech Stack](#-tech-stack) • [Installation](#-installation) • [Firebase Setup](#-firebase-setup) • [Usage](#-usage) • [Deployment](#-deployment)
+[Features](#-features) • [Tech Stack](#-tech-stack) • [Installation](#-installation) • [Supabase Setup](#-supabase-setup) • [Usage](#-usage) • [Deployment](#-deployment)
 
 </div>
+
+---
+
+## 🚀 Migration to Supabase
+
+**ParcelPort has been migrated from Firebase to Supabase!**
+
+For detailed migration information, see:
+- **[README_MIGRATION.md](README_MIGRATION.md)** - Migration overview and quick start
+- **[SUPABASE_SETUP.md](SUPABASE_SETUP.md)** - Complete setup guide
+- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Detailed migration steps
+- **[MIGRATION_STATUS.md](MIGRATION_STATUS.md)** - Current progress
+- **[SUPABASE_QUICK_REFERENCE.md](SUPABASE_QUICK_REFERENCE.md)** - Code examples
 
 ---
 
@@ -24,7 +37,7 @@
 - [Tech Stack](#-tech-stack)
 - [Prerequisites](#-prerequisites)
 - [Installation](#-installation)
-- [Firebase Setup](#-firebase-setup)
+- [Supabase Setup](#-supabase-setup)
 - [Environment Variables](#-environment-variables)
 - [Running the Application](#-running-the-application)
 - [Project Structure](#-project-structure)
